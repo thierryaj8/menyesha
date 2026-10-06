@@ -1,0 +1,127 @@
+import type { MediaArticle } from '@/types';
+
+export const ARTICLES: MediaArticle[] = [
+  {
+    id: 'art-001',
+    title: 'Road Safety Campaign 2026 Kicks Off with Nationwide Roadblocks',
+    summary:
+      'Rwanda National Police launched its annual Road Safety Month campaign with simultaneous checkpoints on major roads across all five provinces.',
+    body: `The Rwanda National Police officially launched Road Safety Month 2026 on 1 October with a nationwide deployment of traffic checkpoints. Officers set up over 120 checkpoints on arterial roads in Kigali and all provinces simultaneously at 06:00.\n\nSpeaking at the launch ceremony at Rwanda National Police Headquarters in Kacyiru, Commissioner General Dan Munyuza emphasized that road safety is a shared responsibility. "We cannot reduce road fatalities without the active participation of every road user," he said.\n\nThe campaign runs throughout October under the theme "Drive to Arrive Alive." Key focus areas include speeding, drunk driving, failure to wear seatbelts, and use of mobile phones while driving. Police will issue on-the-spot fines and, in serious cases, impound vehicles.\n\nLast year's campaign contributed to a 12% reduction in road fatalities compared to the same period in 2024. Police are targeting a further 15% reduction in 2026.\n\nCitizens can report traffic violations through the FixRwanda app or by calling the Traffic Police hotline on 113.`,
+    category: 'road_safety',
+    author: 'Rwanda National Police — Communications Unit',
+    publishedAt: '2026-10-01T09:00:00.000Z',
+    status: 'published',
+    coverImageUri: 'https://www.police.gov.rw/media/articles/road-safety-launch.jpg',
+    tags: ['road safety', 'October campaign', 'traffic', 'checkpoints'],
+  },
+  {
+    id: 'art-002',
+    title: 'Police Recover 15 Stolen Vehicles in Operation Bright City',
+    summary:
+      'A three-day joint operation with Interpol led to the recovery of 15 stolen vehicles and the arrest of 7 suspects across Kigali.',
+    body: `Operation Bright City, a three-day joint operation between Rwanda National Police and Interpol, concluded on 29 September 2026 with the recovery of 15 stolen vehicles and the arrest of seven suspects.\n\nThe operation targeted a cross-border vehicle theft network operating between Rwanda, Uganda, and the Democratic Republic of Congo. Vehicles recovered included saloon cars, minibuses, and motorcycles with altered registration plates.\n\nAll recovered vehicles are being held at Remera Police Station pending owner identification. Vehicle owners who believe their property may have been recovered are advised to contact the Kigali Vehicle Recovery Unit with proof of ownership documents.\n\nThe seven arrested suspects are in custody awaiting prosecution. Police have cautioned citizens to always lock vehicles, not leave documents inside, and report suspicious activity involving vehicles through FixRwanda.`,
+    category: 'crime_prevention',
+    author: 'Rwanda National Police — Criminal Investigations Department',
+    publishedAt: '2026-09-30T14:00:00.000Z',
+    status: 'published',
+    coverImageUri: 'https://www.police.gov.rw/media/articles/operation-bright-city.jpg',
+    tags: ['vehicle theft', 'operation', 'Interpol', 'crime prevention'],
+  },
+  {
+    id: 'art-003',
+    title: 'Community Policing: Gasabo Forum Brings Together 400 Residents',
+    summary:
+      'The quarterly community policing forum in Gasabo District attracted over 400 residents to discuss neighbourhood safety, crime prevention, and use of FixRwanda.',
+    body: `More than 400 residents of Gasabo District attended the quarterly Community Policing Forum held on 25 September 2026 at Gasabo District Headquarters. The event was jointly organized by Rwanda National Police and Gasabo District Administration.\n\nKey topics discussed included neighbourhood watch coordination, strategies for preventing burglary and petty theft, and a live demonstration of the FixRwanda reporting app. Officers from the Gasabo Police Post walked residents through how to submit reports, track their status, and earn FixPoints for verified reports.\n\n"Community policing is not just about police — it is about every resident taking responsibility for their street," said the Gasabo District Police Commander.\n\nThe next forum is scheduled for January 2027. Residents can request to join neighbourhood watch groups through their local police post.`,
+    category: 'community_policing',
+    author: 'Gasabo District Police Post',
+    publishedAt: '2026-09-26T11:00:00.000Z',
+    status: 'published',
+    tags: ['community policing', 'Gasabo', 'neighbourhood watch', 'FixRwanda'],
+  },
+  {
+    id: 'art-004',
+    title: 'New Traffic Light System Installed at 12 Major Kigali Intersections',
+    summary:
+      'RTDA and Rwanda National Police have jointly installed an upgraded adaptive traffic light system at 12 high-congestion intersections in Kigali.',
+    body: `A new generation of adaptive traffic lights has been installed at 12 major intersections in Kigali as part of the Smart Kigali Mobility Project. The system uses sensors to dynamically adjust signal timings based on real-time traffic flow.\n\nThe 12 intersections include Kacyiru roundabout, Remera junction, Kimironko roundabout, and the Nyabugogo transport hub. RTDA expects the new system to reduce average intersection delays by up to 25% during peak hours.\n\nRwanda National Police Traffic Department officers will monitor the new system in its first month of operation and report operational data to RTDA. Citizens who observe malfunctions are encouraged to report them through FixRwanda under the Public Property category or call 113.\n\nThe remaining 18 intersections in phase two of the project are expected to be upgraded by June 2027.`,
+    category: 'traffic',
+    author: 'Rwanda National Police — Traffic Department / RTDA',
+    publishedAt: '2026-09-22T08:00:00.000Z',
+    status: 'published',
+    tags: ['traffic lights', 'Kigali', 'smart city', 'RTDA'],
+  },
+  {
+    id: 'art-005',
+    title: 'Anti-GBV Unit Responds to 340 Cases in Q3 2026',
+    summary:
+      'Rwanda National Police Gender-Based Violence unit handled 340 reported cases in the third quarter of 2026, with a 78% prosecution rate.',
+    body: `The Rwanda National Police Anti-Gender-Based Violence Unit handled 340 reported cases between July and September 2026, representing a 6% increase compared to Q3 2025. Of these, 265 cases (78%) proceeded to prosecution.\n\nPolice attribute the rise in reports partly to increased public awareness of reporting channels, including the GBV hotline 3512 and the FixRwanda app. "More people reporting is a sign that trust in police is growing," said the unit commander.\n\nThe unit provided support services to all 340 survivors, including referrals to Isange One Stop Centres for medical, legal, and psychosocial assistance.\n\nPolice are reminding the public that GBV is a serious crime and that all reports are handled with strict confidentiality. Anyone experiencing or witnessing GBV should call 3512 or report through FixRwanda immediately.`,
+    category: 'public_announcements',
+    author: 'Rwanda National Police — Anti-GBV Unit',
+    publishedAt: '2026-10-01T10:00:00.000Z',
+    status: 'published',
+    tags: ['GBV', 'Q3 2026', 'Isange', 'gender-based violence'],
+  },
+  {
+    id: 'art-006',
+    title: 'Police Officers Recognized for Bravery at Annual Awards Ceremony',
+    summary:
+      'Twenty-two officers received bravery and community service awards at the Rwanda National Police Annual Awards Ceremony 2026.',
+    body: `Twenty-two Rwanda National Police officers were recognized for outstanding bravery and community service at the Annual Awards Ceremony held on 20 September 2026 at Kigali Convention Centre.\n\nThe awards were presented by the Minister of Internal Security and included commendations for officers who saved lives in traffic accidents, apprehended armed suspects, and made exceptional contributions to community policing programmes.\n\nCommissioner General Dan Munyuza praised the dedication of all officers. "These awards represent the very best of what Rwanda National Police stands for — service, integrity, and commitment to the people."\n\nHighlights of the ceremony, including individual officer stories, will be published on the Rwanda National Police YouTube channel.`,
+    category: 'general',
+    author: 'Rwanda National Police — Communications Unit',
+    publishedAt: '2026-09-21T16:00:00.000Z',
+    status: 'published',
+    tags: ['awards', 'bravery', 'community service', 'officers'],
+  },
+  {
+    id: 'art-007',
+    title: 'Eastern Province: Flood-Damaged Roads — Police Issue Safety Advisory',
+    summary:
+      'Persistent rains in Eastern Province have damaged three rural roads. Police are advising motorists to avoid affected routes and check conditions before travelling.',
+    body: `Rwanda National Police Eastern Province Detachment has issued a road safety advisory following damage to three rural roads caused by heavy rains in late September 2026.\n\nThe affected routes are the Nyagatare–Kabarondo road near the Muvumba River bridge, the Rwamagana–Kayonza road at kilometre 8, and the Bugesera–Ngoma road near Sake sector.\n\nPolice advise motorists to avoid these routes until further notice, seek alternative routes via national highways, and report any additional road damage through FixRwanda under the Traffic/Safety category.\n\nRTDA engineering teams are assessing the damage and will provide repair timelines. Regular updates will be posted on this channel and on the Traffic Police Rwanda Facebook page.`,
+    category: 'traffic',
+    author: 'Rwanda National Police — Eastern Province Detachment',
+    publishedAt: '2026-10-01T07:30:00.000Z',
+    status: 'published',
+    tags: ['floods', 'Eastern Province', 'road damage', 'travel advisory'],
+  },
+  {
+    id: 'art-008',
+    title: 'FixRwanda App Reaches 50,000 Active Users',
+    summary:
+      'The FixRwanda citizen reporting app has reached 50,000 active monthly users, with road incidents and public property damage as the most reported categories.',
+    body: `The FixRwanda civic reporting app has reached 50,000 active monthly users as of September 2026, eight months after its national launch. The milestone was announced by Rwanda National Police Commissioner General Dan Munyuza.\n\nOf the 87,000 reports submitted to date, road-related incidents account for 34% and public property damage for 28%. The app has a verified report rate of 61%, significantly above the initial target of 45%.\n\n"FixRwanda is changing how citizens and police communicate," the Commissioner General said. "Every verified report makes our communities safer."\n\nThe top three districts by report volume are Gasabo (22%), Kicukiro (18%), and Nyarugenge (16%). Rwanda National Police is working with Kigali City to prioritize resolution of the highest-volume issue categories.\n\nThe app is available for free on iOS and Android. Citizens earn FixPoints for verified reports, redeemable as mobile money.`,
+    category: 'public_announcements',
+    author: 'Rwanda National Police — Communications Unit',
+    publishedAt: '2026-09-15T12:00:00.000Z',
+    status: 'published',
+    coverImageUri: 'https://www.police.gov.rw/media/articles/fixrwanda-50k.jpg',
+    tags: ['FixRwanda', 'milestone', '50000 users', 'citizen reporting'],
+  },
+  {
+    id: 'art-009',
+    title: 'Traffic Speed Camera Network Expanded to 45 Sites Nationwide',
+    summary:
+      'Rwanda National Police and RTDA have activated 15 new speed cameras, bringing the national network to 45 fixed and mobile sites.',
+    body: `Rwanda National Police and the Rwanda Transport Development Agency (RTDA) have activated 15 new speed cameras across Rwanda, expanding the national automated enforcement network to 45 fixed and mobile sites.\n\nThe new cameras are located on the Kigali–Musanze highway (5 sites), the Kigali–Huye highway (4 sites), and in high-risk zones in Kigali City (6 sites). All cameras are integrated with the RTDA Vehicle Information System and will automatically generate penalty notices for registered vehicle owners.\n\n"Speed is the leading cause of fatal road accidents in Rwanda. Automated enforcement removes the element of luck from speeding," said the RTDA Director General.\n\nFines for exceeding the speed limit start at RWF 50,000 for up to 20 km/h over the limit and rise to licence suspension for repeat offenders or extreme speeding. Details are available in the Traffic Offences and Penalties document in the FixRwanda Traffic Rules library.`,
+    category: 'traffic',
+    author: 'Rwanda National Police — Traffic Department / RTDA',
+    publishedAt: '2026-09-10T09:00:00.000Z',
+    status: 'published',
+    tags: ['speed cameras', 'RTDA', 'enforcement', 'road safety'],
+  },
+  {
+    id: 'art-010',
+    title: 'Back-to-School Safety: Police Deploy 200 Officers at School Zones',
+    summary:
+      'With schools reopening for Term 3, Rwanda National Police has deployed 200 officers across 80 school zones in Kigali to ensure safe crossings.',
+    body: `As schools across Rwanda resumed for the third academic term, the Rwanda National Police deployed 200 officers to 80 designated school safety zones in Kigali on 2 September 2026. Officers are stationed from 07:00 to 08:30 and from 16:00 to 17:30 on school days.\n\nThe deployment focuses on schools on high-traffic roads without pedestrian crossings or traffic lights. Officers are assisting children and parents crossing, managing vehicle drop-off zones, and monitoring for speeding in school areas.\n\nDrivers are reminded that the maximum speed limit in a school zone is 30 km/h. Failure to observe this limit will result in immediate fines.\n\nParents are encouraged to teach children road safety habits and report any dangerous conditions near schools through FixRwanda.`,
+    category: 'road_safety',
+    author: 'Rwanda National Police — Traffic Department',
+    publishedAt: '2026-09-02T06:00:00.000Z',
+    status: 'published',
+    tags: ['school safety', 'back to school', 'pedestrian', 'traffic officers'],
+  },
+];

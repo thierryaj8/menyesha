@@ -1,0 +1,1 @@
+export { default } from '@/app/(app)/police/traffic/[id]';

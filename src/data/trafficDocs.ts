@@ -1,0 +1,108 @@
+import type { TrafficDocument } from '@/types';
+
+export const TRAFFIC_DOCS: TrafficDocument[] = [
+  {
+    id: 'td-001',
+    title: 'Rwanda Highway Code',
+    category: 'driving_licences',
+    summary:
+      'Official highway code covering licensing requirements, road rules, and driver obligations for all vehicle categories in Rwanda.',
+    pdfUrl: 'https://www.rura.rw/docs/highway-code.pdf',
+    issuingAuthority: 'Rwanda National Police / RURA',
+    sourceUrl: 'https://www.rura.rw',
+    publishedAt: '2023-01-15T00:00:00.000Z',
+    revisedAt: '2024-06-01T00:00:00.000Z',
+    language: 'en',
+    version: '3.2',
+  },
+  {
+    id: 'td-002',
+    title: 'Amategeko y\'Umuhanda — Imiyoboro n\'Ibisobanuro',
+    category: 'road_signs',
+    summary:
+      'Ibisobanuro byuzuye bya kimwe na kimwe mu bisobanuro byumuhanda, ibara ryaho, nibisobanuro by\'amashanyarazi byose bituye mu Rwanda.',
+    pdfUrl: 'https://www.rura.rw/docs/road-signs-rw.pdf',
+    issuingAuthority: 'Police Nationale du Rwanda',
+    publishedAt: '2023-03-20T00:00:00.000Z',
+    revisedAt: '2024-03-20T00:00:00.000Z',
+    language: 'rw',
+    version: '2.1',
+  },
+  {
+    id: 'td-003',
+    title: 'Vehicle Roadworthiness Standards',
+    category: 'vehicle_regulations',
+    summary:
+      'Technical standards for vehicle inspections, emissions limits, load restrictions, and mandatory safety equipment for all vehicles registered in Rwanda.',
+    pdfUrl: 'https://www.rura.rw/docs/vehicle-standards.pdf',
+    issuingAuthority: 'Rwanda Utilities Regulatory Authority (RURA)',
+    sourceUrl: 'https://www.rura.rw',
+    publishedAt: '2022-09-10T00:00:00.000Z',
+    revisedAt: '2024-09-10T00:00:00.000Z',
+    language: 'en',
+    version: '4.0',
+  },
+  {
+    id: 'td-004',
+    title: 'Sécurité des Piétons — Guide Officiel',
+    category: 'pedestrian_safety',
+    summary:
+      'Guide complet sur les droits et obligations des piétons, l\'utilisation des passages protégés, et les règles de sécurité routière pour les usagers vulnérables.',
+    pdfUrl: 'https://www.rura.rw/docs/pedestrian-safety-fr.pdf',
+    issuingAuthority: 'Police Nationale du Rwanda',
+    publishedAt: '2023-07-01T00:00:00.000Z',
+    language: 'fr',
+    version: '1.5',
+  },
+  {
+    id: 'td-005',
+    title: 'Public Transport Regulations',
+    category: 'public_transport',
+    summary:
+      'Rules governing minibus taxis (matatus), motorcycle taxis (motos), and buses in Rwanda, including passenger rights, fare regulations, and operator licensing.',
+    pdfUrl: 'https://www.rura.rw/docs/public-transport.pdf',
+    issuingAuthority: 'Rwanda Utilities Regulatory Authority (RURA)',
+    sourceUrl: 'https://www.rura.rw',
+    publishedAt: '2023-11-01T00:00:00.000Z',
+    revisedAt: '2024-11-01T00:00:00.000Z',
+    language: 'en',
+    version: '2.3',
+  },
+  {
+    id: 'td-006',
+    title: 'Traffic Offences and Penalties',
+    category: 'traffic_offences',
+    summary:
+      'Schedule of traffic offences, penalty fines, demerit points, and procedures for contesting a traffic charge in Rwanda.',
+    pdfUrl: 'https://www.rura.rw/docs/traffic-offences.pdf',
+    issuingAuthority: 'Rwanda National Police — Traffic Department',
+    sourceUrl: 'https://www.police.gov.rw',
+    publishedAt: '2024-01-01T00:00:00.000Z',
+    language: 'en',
+    version: '1.0',
+  },
+  {
+    id: 'td-007',
+    title: 'Speed Limits and Road Markings',
+    category: 'road_signs',
+    summary:
+      'National speed limits by road type, lane markings, stop lines, pedestrian crossings, and road surface markings across Rwanda.',
+    issuingAuthority: 'Rwanda National Police / RTDA',
+    publishedAt: '2023-05-01T00:00:00.000Z',
+    revisedAt: '2024-05-01T00:00:00.000Z',
+    language: 'en',
+    version: '2.0',
+  },
+  {
+    id: 'td-008',
+    title: 'Guide du Permis de Conduire',
+    category: 'driving_licences',
+    summary:
+      'Toutes les catégories de permis de conduire disponibles au Rwanda, les conditions d\'obtention, les tests théoriques et pratiques, et les procédures de renouvellement.',
+    pdfUrl: 'https://www.rura.rw/docs/driving-licence-fr.pdf',
+    issuingAuthority: 'RURA / Police Nationale du Rwanda',
+    publishedAt: '2024-02-14T00:00:00.000Z',
+    language: 'fr',
+    version: '1.2',
+  },
+];

@@ -1,0 +1,48 @@
+import type { Newsletter } from '@/types';
+
+export const NEWSLETTERS: Newsletter[] = [
+  {
+    id: 'nl-001',
+    title: 'Rwanda National Police — October 2026 Newsletter',
+    edition: 'October 2026',
+    month: 10,
+    year: 2026,
+    department: 'Rwanda National Police — Communications Unit',
+    publishedAt: '2026-10-01T08:00:00.000Z',
+    pdfUrl: 'https://www.police.gov.rw/newsletters/rnp-oct-2026.pdf',
+    articleIds: ['art-001', 'art-005', 'art-008'],
+  },
+  {
+    id: 'nl-002',
+    title: 'Traffic Safety Bulletin — Q3 2026',
+    edition: 'Q3 2026',
+    month: 9,
+    year: 2026,
+    department: 'Rwanda National Police — Traffic Department',
+    publishedAt: '2026-09-30T10:00:00.000Z',
+    pdfUrl: 'https://www.police.gov.rw/newsletters/traffic-q3-2026.pdf',
+    articleIds: ['art-004', 'art-007', 'art-009', 'art-010'],
+  },
+  {
+    id: 'nl-003',
+    title: 'Rwanda National Police — September 2026 Newsletter',
+    edition: 'September 2026',
+    month: 9,
+    year: 2026,
+    department: 'Rwanda National Police — Communications Unit',
+    publishedAt: '2026-09-01T08:00:00.000Z',
+    pdfUrl: 'https://www.police.gov.rw/newsletters/rnp-sep-2026.pdf',
+    articleIds: ['art-002', 'art-003', 'art-006'],
+  },
+  {
+    id: 'nl-004',
+    title: 'Community Policing Digest — Q3 2026',
+    edition: 'Q3 2026',
+    month: 9,
+    year: 2026,
+    department: 'Rwanda National Police — Community Policing Unit',
+    publishedAt: '2026-09-28T09:00:00.000Z',
+    pdfUrl: 'https://www.police.gov.rw/newsletters/community-q3-2026.pdf',
+    articleIds: ['art-003', 'art-006', 'art-008'],
+  },
+];
