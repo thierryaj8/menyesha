@@ -20,8 +20,8 @@ export default function VerifyScreen() {
   const [error, setError] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
 
-  const onSubmit = () => {
-    const result = verify(code);
+  const onSubmit = async () => {
+    const result = await verify(code);
     if (!result.ok && result.errorKey) setError(t(result.errorKey));
     // Success flips the app into the signed-in group.
   };

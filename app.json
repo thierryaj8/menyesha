@@ -57,7 +57,8 @@
           "photosPermission": "MENYESHA lets you attach a photo or video to your report.",
           "cameraPermission": "MENYESHA lets you take a photo or video for your report."
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }

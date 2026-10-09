@@ -2,17 +2,12 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
-import {
-  DEMO_USER,
-  DEMO_VERIFY_CODE,
-  SEED_POINTS,
-  SEED_REPORTS,
-  SEED_WEEKLY,
-} from '@/data/mock';
+import { SEED_POINTS, SEED_REPORTS, SEED_WEEKLY } from '@/data/mock';
 import { KIGALI_CENTER } from '@/data/kigali';
 import { ANNOUNCEMENTS } from '@/data/announcements';
 import { ARTICLES } from '@/data/articles';
@@ -56,6 +51,7 @@ import type {
   User,
   WebBanner,
 } from '@/types';
+import { api, getAuthToken, setAuthToken } from '@/utils/api';
 import { isSameDay, makeId } from '@/utils/format';
 import { findNearbyDuplicate, isRateLimited } from './rules';
 
@@ -82,13 +78,13 @@ interface AppValue {
   updateDraft: (patch: Partial<ReportDraft>) => void;
   resetDraft: () => void;
 
-  login: (phone: string, password: string) => { ok: boolean; errorKey?: string };
+  login: (phone: string, password: string) => Promise<{ ok: boolean; errorKey?: string }>;
   signup: (input: {
     username: string;
     phone: string;
     password: string;
-  }) => { ok: boolean; errorKey?: string };
-  verify: (code: string) => { ok: boolean; errorKey?: string };
+  }) => Promise<{ ok: boolean; errorKey?: string }>;
+  verify: (code: string) => Promise<{ ok: boolean; errorKey?: string }>;
   logout: () => void;
 
   submitReport: (data?: {
@@ -177,8 +173,8 @@ interface AppValue {
   notifications: AppNotification[];
   unreadCount: number;
   searchNotifications: (query: string, kind?: NotificationKind) => AppNotification[];
-  markNotificationRead: (id: string) => void;
-  markAllNotificationsRead: () => void;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
 
   // ─── Admin ───────────────────────────────────────────────────────────
   adminUser: AdminUser | null;
@@ -224,8 +220,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState<{ username: string; phone: string } | null>(null);
 
   const [reports, setReports] = useState<Report[]>(SEED_REPORTS);
-  const [points] = useState<PointEntry[]>(SEED_POINTS);
+  const [points, setPoints] = useState<PointEntry[]>(SEED_POINTS);
   const [weekly, setWeekly] = useState(SEED_WEEKLY);
+  const [notifications, setNotifications] = useState<AppNotification[]>(NOTIFICATIONS);
   const [sentToday, setSentToday] = useState<string[]>([]);
   const [draft, setDraft] = useState<ReportDraft>(emptyDraft);
 
@@ -267,48 +264,148 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const resetDraft = useCallback(() => setDraft(emptyDraft), []);
 
-  const login = useCallback((phone: string, password: string) => {
+  const syncRemoteData = useCallback(async (token: string) => {
+    try {
+      const [reportsResponse, pointsResponse, statsResponse] = await Promise.all([
+        api.getReports(token),
+        api.getPoints(token),
+        api.getWeeklyStats(token),
+      ]);
+      const notificationsResponse = await api.getNotifications(token);
+
+      const nextReports = (reportsResponse.reports ?? []).map((report) => ({
+        id: report.id,
+        authorId: report.authorId,
+        categoryId: report.categoryId,
+        description: report.description,
+        photoUri: report.photoUri ?? null,
+        location: {
+          latitude: Number(report.location?.latitude ?? 0),
+          longitude: Number(report.location?.longitude ?? 0),
+        },
+        area: report.area ?? 'Kigali',
+        status: report.status,
+        createdAt: report.createdAt,
+        timeline: (report.timeline ?? []).map((entry: any) => ({
+          status: entry.status,
+          date: entry.date,
+        })),
+        duplicateOfId: report.duplicateOfId ?? null,
+        linkedCount: report.linkedCount ?? 1,
+        pointsEligible: report.pointsEligible ?? true,
+      }));
+
+      const nextPoints = (pointsResponse.points ?? []).map((point) => ({
+        id: point.id,
+        reportId: point.reportId,
+        label: point.label,
+        points: Number(point.points ?? 0),
+        status: point.status,
+        date: point.date,
+      }));
+
+      setReports(nextReports);
+      setPoints(nextPoints);
+      setWeekly({
+        filed: Number(statsResponse.filed ?? 0),
+        resolved: Number(statsResponse.resolved ?? 0),
+      });
+      setNotifications(notificationsResponse.notifications);
+    } catch {
+      // Fall back to the local mocked data when the backend is unavailable.
+    }
+  }, []);
+
+  useEffect(() => {
+    const hydrateSession = async () => {
+      const token = await getAuthToken();
+      if (!token) return;
+
+      try {
+        const { user: remoteUser } = await api.me(token);
+        setUser({ id: remoteUser.id, username: remoteUser.username, phone: remoteUser.phone });
+        setPhase('signedIn');
+        await syncRemoteData(token);
+      } catch {
+        await setAuthToken(null);
+        setUser(null);
+        setPhase('signedOut');
+      }
+    };
+
+    void hydrateSession();
+  }, [syncRemoteData]);
+
+  const login = useCallback(async (phone: string, password: string) => {
     if (!phone.trim()) return { ok: false, errorKey: 'auth.errPhone' };
     if (!isValidPhone(phone)) return { ok: false, errorKey: 'auth.errPhoneFormat' };
     if (!password) return { ok: false, errorKey: 'auth.errPassword' };
 
-    const normalized = normalizePhone(phone);
-    const username =
-      normalized === DEMO_USER.phone
-        ? DEMO_USER.username
-        : `Citizen ${normalized.slice(-4)}`;
-
-    setUser({ id: 'me', username, phone: normalized });
-    setPhase('signedIn');
-    setPending(null);
-    return { ok: true };
-  }, []);
+    try {
+      const normalized = normalizePhone(phone);
+      const { user, accessToken } = await api.login({ phone: normalized, password });
+      await setAuthToken(accessToken);
+      setUser({ id: user.id, username: user.username, phone: user.phone });
+      setPhase('signedIn');
+      setPending(null);
+      await syncRemoteData(accessToken);
+      return { ok: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      const lower = message.toLowerCase();
+      if (lower.includes('password')) return { ok: false, errorKey: 'auth.errPassword' };
+      if (lower.includes('verify') || lower.includes('expired')) return { ok: false, errorKey: 'verify.errCode' };
+      return { ok: false, errorKey: 'auth.errPhone' };
+    }
+  }, [syncRemoteData]);
 
   const signup = useCallback(
-    (input: { username: string; phone: string; password: string }) => {
+    async (input: { username: string; phone: string; password: string }) => {
       const username = input.username.trim();
       if (username.length < 3) return { ok: false, errorKey: 'auth.errUsernameShort' };
       if (!input.phone.trim()) return { ok: false, errorKey: 'auth.errPhone' };
       if (!isValidPhone(input.phone)) return { ok: false, errorKey: 'auth.errPhoneFormat' };
       if (input.password.length < 6) return { ok: false, errorKey: 'auth.errPasswordShort' };
 
-      const phone = normalizePhone(input.phone);
-      setPending({ username, phone });
-      setUser({ id: 'me', username, phone });
-      setPhase('needsVerify');
-      return { ok: true };
+      try {
+        const phone = normalizePhone(input.phone);
+        await api.signup({ username, phone, password: input.password });
+        setPending({ username, phone });
+        setUser({ id: 'local', username, phone });
+        setPhase('needsVerify');
+        return { ok: true };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (message.toLowerCase().includes('exists')) return { ok: false, errorKey: 'auth.errPhone' };
+        return { ok: false, errorKey: 'auth.errPhoneFormat' };
+      }
     },
     [],
   );
 
-  const verify = useCallback((code: string) => {
+  const verify = useCallback(async (code: string) => {
     if (code.trim().length < 6) return { ok: false, errorKey: 'verify.errCode' };
-    if (code.trim() !== DEMO_VERIFY_CODE) return { ok: false, errorKey: 'verify.errCodeWrong' };
-    setPhase('signedIn');
-    return { ok: true };
-  }, []);
+
+    const phone = pending?.phone ?? user?.phone;
+    if (!phone) return { ok: false, errorKey: 'verify.errCodeWrong' };
+
+    try {
+      const { accessToken, user: remoteUser } = await api.verify({ phone, code: code.trim() });
+      await setAuthToken(accessToken);
+      setUser({ id: remoteUser.id, username: remoteUser.username, phone: remoteUser.phone });
+      setPending(null);
+      setPhase('signedIn');
+      await syncRemoteData(accessToken);
+      return { ok: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      if (message.toLowerCase().includes('too many')) return { ok: false, errorKey: 'verify.errCodeWrong' };
+      return { ok: false, errorKey: 'verify.errCodeWrong' };
+    }
+  }, [pending, syncRemoteData, user]);
 
   const logout = useCallback(() => {
+    void setAuthToken(null);
     setPhase('signedOut');
     setUser(null);
     setPending(null);
@@ -323,8 +420,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }): Promise<SubmitResult> => {
     const description = (data?.description ?? draft.description).trim();
     const categoryId = (data?.categoryId ?? draft.categoryId) as Report['categoryId'];
+    const incidentDate = data?.incidentDate ?? draft.incidentDate;
+    const incidentTime = data?.incidentTime ?? '';
     if (!description || !categoryId) return { ok: false, errorKey: 'report.errDesc' };
     if (isRateLimited(sentToday)) return { ok: false, errorKey: 'report.errRateLimit' };
+
+    const token = await getAuthToken();
+    if (token) {
+      const now = new Date().toISOString();
+      const photoUrl = draft.photoUri && /^https?:\/\//i.test(draft.photoUri)
+        ? draft.photoUri
+        : undefined;
+      if (draft.photoUri && !photoUrl) return { ok: false, errorKey: 'report.errSend' };
+
+      const incidentAt = (() => {
+        if (!incidentDate) return undefined;
+        const time = incidentTime || '00:00';
+        const candidate = new Date(`${incidentDate}T${time}:00`);
+        return Number.isNaN(candidate.getTime()) ? undefined : candidate.toISOString();
+      })();
+
+      try {
+        const response = await api.submitReport(
+          {
+            categoryId,
+            description,
+            latitude: draft.location.latitude,
+            longitude: draft.location.longitude,
+            area: draft.area || 'Kigali',
+            isAnonymous: data?.isAnonymous ?? draft.isAnonymous,
+            incidentAt,
+            photoUrl,
+          },
+          token,
+        );
+
+        const report = response.report as Report | undefined;
+        const duplicateOf = report?.duplicateOfId
+          ? reports.find((entry) => entry.id === report.duplicateOfId) ?? null
+          : null;
+
+        setSentToday((current) => [...current, now]);
+        setDraft(emptyDraft);
+        await syncRemoteData(token);
+        return { ok: true, reportId: report?.id, duplicateOf };
+      } catch (error) {
+        const message = error instanceof Error ? error.message.toLowerCase() : '';
+        return {
+          ok: false,
+          errorKey: message.includes('daily report limit') ? 'report.errRateLimit' : 'report.errSend',
+        };
+      }
+    }
 
     const duplicate = findNearbyDuplicate(reports, {
       categoryId,
@@ -361,7 +508,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDraft(emptyDraft);
 
     return { ok: true, reportId: report.id, duplicateOf: duplicate };
-  }, [draft, reports, sentToday, user]);
+  }, [draft, reports, sentToday, syncRemoteData, user]);
 
   const getReport = useCallback(
     (id: string) => reports.find((r) => r.id.toUpperCase() === id.toUpperCase()),
@@ -680,8 +827,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ─── Notifications ────────────────────────────────────────────────────────
 
-  const [notifications, setNotifications] = useState<AppNotification[]>(NOTIFICATIONS);
-
   const searchNotifications = useCallback(
     (query: string, kind?: NotificationKind): AppNotification[] => {
       const q = query.toLowerCase().trim();
@@ -702,13 +847,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [notifications],
   );
 
-  const markNotificationRead = useCallback((id: string) => {
+  const markNotificationRead = useCallback(async (id: string) => {
+    const token = await getAuthToken();
+    if (token) {
+      try {
+        await api.markNotificationRead(id, token);
+      } catch {
+        return;
+      }
+    }
     setNotifications((current) =>
       current.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
     );
   }, []);
 
-  const markAllNotificationsRead = useCallback(() => {
+  const markAllNotificationsRead = useCallback(async () => {
+    const token = await getAuthToken();
+    if (token) {
+      try {
+        await api.markAllNotificationsRead(token);
+      } catch {
+        return;
+      }
+    }
     setNotifications((current) => current.map((n) => ({ ...n, isRead: true })));
   }, []);
 

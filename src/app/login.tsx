@@ -25,12 +25,12 @@ export default function LoginScreen() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     setPhoneError(null);
     setPasswordError(null);
     setError(null);
 
-    const result = login(phone, password);
+    const result = await login(phone, password);
     if (!result.ok && result.errorKey) {
       if (result.errorKey === 'auth.errPassword') setPasswordError(t(result.errorKey));
       else if (result.errorKey.startsWith('auth.errPhone')) setPhoneError(t(result.errorKey));

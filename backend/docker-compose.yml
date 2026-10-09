@@ -1,0 +1,15 @@
+services:
+  database:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: menyesha
+      POSTGRES_PASSWORD: menyesha
+      POSTGRES_DB: menyesha
+    ports:
+      - "5432:5432"
+    volumes:
+      - menyesha-postgres:/var/lib/postgresql/data
+
+volumes:
+  menyesha-postgres:

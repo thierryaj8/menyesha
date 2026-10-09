@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ReportStatus {
+  submitted
+  received
+  under_review
+  verified
+  action_taken
+}
+
+enum PointStatus {
+  pending
+  confirmed
+  removed
+}
+
+enum NotificationKind {
+  announcement
+  report_status
+  points
+  campaign
+  newsletter
+  traffic_doc
+}
+
+model User {
+  id            String                  @id @default(cuid())
+  username      String
+  phone         String                  @unique
+  passwordHash  String
+  verifiedAt    DateTime?
+  createdAt     DateTime                @default(now())
+  reports       Report[]
+  points        PointEntry[]
+  notifications Notification[]
+  verification  VerificationChallenge?
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  kind      NotificationKind
+  title     String
+  body      String
+  route     String?
+  isUrgent  Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model VerificationChallenge {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int      @default(0)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id             String        @id @default(cuid())
+  authorId       String
+  categoryId     String
+  description    String
+  photoUrl       String?
+  latitude       Float
+  longitude      Float
+  area           String
+  isAnonymous    Boolean       @default(false)
+  incidentAt     DateTime?
+  status         ReportStatus  @default(submitted)
+  duplicateOfId  String?
+  linkedCount    Int           @default(1)
+  pointsEligible Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  author         User          @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  duplicateOf    Report?       @relation("ReportDuplicates", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates     Report[]      @relation("ReportDuplicates")
+  timeline       ReportTimeline[]
+  points         PointEntry[]
+
+  @@index([authorId, createdAt])
+  @@index([categoryId, status, createdAt])
+}
+
+model ReportTimeline {
+  id        String       @id @default(cuid())
+  reportId  String
+  status    ReportStatus
+  createdAt DateTime     @default(now())
+  report    Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId, createdAt])
+}
+
+model PointEntry {
+  id        String      @id @default(cuid())
+  userId    String
+  reportId  String
+  label     String
+  points    Int
+  status    PointStatus @default(pending)
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  report    Report      @relation(fields: [reportId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+}

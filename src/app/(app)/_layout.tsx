@@ -11,6 +11,9 @@ export default function AppLayout() {
         headerShown: false,
         contentStyle: { backgroundColor: colors.background },
       }}
-    />
+    >
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="profile" />
+    </Stack>
   );
 }

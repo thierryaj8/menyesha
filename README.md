@@ -4,8 +4,8 @@ A citizen reporting app for Kigali. See a problem — crime, broken infrastructu
 environmental damage, utility cuts, traffic hazards — report it in a few taps, then
 follow what happens.
 
-Right now the app runs entirely on **mock data** (no backend), so every screen and
-flow can be clicked through on iOS, Android, and the web.
+Authentication and citizen report data require the backend. Police, admin, and
+discovery content still use local mock data.
 
 ## Run it
 
@@ -14,12 +14,13 @@ npm install
 npx expo start        # then press w (web), a (Android), i (iOS)
 ```
 
-Log in with the demo account (it is pre-filled):
+For backend-backed auth and reports, start the API and database as described in
+[`backend/README.md`](backend/README.md), then configure `EXPO_PUBLIC_API_URL` if
+the default host is not reachable from your device. Android emulators use
+`http://10.0.2.2:4000`; physical devices need the computer's LAN address.
 
-- Phone: `+250788123456`
-- Password: `demo1234`
-
-Signing up creates a new account; the SMS code screen accepts `123456`.
+Create an account in the app. In development, the verification code is printed
+in the backend terminal; production sends it through the configured SMS webhook.
 
 ## What is here
 
@@ -85,16 +86,16 @@ Add keys to `src/i18n/rw.ts` or `src/i18n/fr.ts`. Any key you add overrides
 English; anything you skip falls back to English. Screens never change.
 The language switcher on the FixPoints screen proves it works.
 
-## Wiring the real backend next
+## Backend API
 
-The app talks to one place: `src/store/AppProvider.tsx`. Replace the mock
-functions with API calls and the screens keep working.
+The standalone Express and PostgreSQL API is in [`backend/README.md`](backend/README.md).
+The Expo app connects signup, verification, login, session hydration, report
+submission and history, points history, and Kigali weekly statistics through
+`src/store/AppProvider.tsx` and `src/utils/api.ts`.
 
-- `login` / `signup` / `verify` → Node + Express auth endpoints (phone + password, SMS code)
-- `submitReport` → `POST /reports` (server runs the same duplicate rules)
-- `reports`, `points`, `weekly` → `GET /me/reports`, `GET /me/points`, `GET /stats/kigali-week`
-- Photo/video: upload the picked asset to S3/Cloudinary, send the returned URL
-- Push notifications: `expo-notifications`, sent on report status change
+- Photo/video uploads need a storage provider; report creation currently accepts
+  an already-hosted `photoUrl`.
+- Push notifications and admin report/status workflows remain future backend work.
 
 ### Maps
 `src/components/KigaliMap.tsx` is a dependency-free placeholder so the prototype

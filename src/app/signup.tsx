@@ -26,12 +26,12 @@ export default function SignupScreen() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     setUsernameError(null);
     setPhoneError(null);
     setPasswordError(null);
 
-    const result = signup({ username, phone, password });
+    const result = await signup({ username, phone, password });
     if (!result.ok && result.errorKey) {
       if (result.errorKey.startsWith('auth.errUsername')) setUsernameError(t(result.errorKey));
       else if (result.errorKey.startsWith('auth.errPhone')) setPhoneError(t(result.errorKey));
