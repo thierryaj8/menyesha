@@ -75,6 +75,14 @@ export default function DiscoverScreen() {
     },
   ];
 
+  const EXTRA_SECTIONS: DiscoverSection[] = [
+    { icon: 'shield-half', titleKey: 'nav.policeHubTitle', subtitleKey: 'police.hubSubtitle', route: '/police' },
+    { icon: 'newspaper', titleKey: 'nav.news', subtitleKey: 'police.mediaSubtitle', route: '/news' },
+    { icon: 'car', titleKey: 'nav.trafficRules', subtitleKey: 'police.trafficSubtitle', route: '/traffic-rules' },
+    { icon: 'notifications', titleKey: 'nav.notifications', subtitleKey: 'notifications.subtitle', route: '/notifications' },
+    { icon: 'sparkles', titleKey: 'nav.acp', subtitleKey: 'acp.subtitle', route: '/acp' },
+  ];
+
   return (
     <Screen>
       {/* Header */}
@@ -137,6 +145,28 @@ export default function DiscoverScreen() {
                 </Text>
               </View>
             )}
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Safety, news, rules, and police hub */}
+      <Text style={[styles.cardTitle, { marginTop: spacing.lg }]}>Safety services</Text>
+      <View style={styles.grid}>
+        {EXTRA_SECTIONS.map((section) => (
+          <Pressable
+            key={section.route}
+            onPress={() => router.push(section.route as any)}
+            accessibilityRole="button"
+            accessibilityLabel={t(section.titleKey as any)}
+            style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+          >
+            <View style={styles.cardIcon}>
+              <Ionicons name={section.icon as any} size={24} color={colors.brand} />
+            </View>
+            <Text style={styles.cardTitle}>{t(section.titleKey as any)}</Text>
+            <Text style={styles.cardSub} numberOfLines={2}>
+              {t(section.subtitleKey as any)}
+            </Text>
           </Pressable>
         ))}
       </View>

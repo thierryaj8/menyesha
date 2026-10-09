@@ -18,6 +18,7 @@ import { useEffect } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DesktopNav, DESKTOP_BREAKPOINT } from '@/components/DesktopNav';
+import { BrandedSplash } from '@/components/BrandedSplash';
 import { EmergencyProvider } from '@/components/EmergencySheet';
 import { TopLanguageBar } from '@/components/TopLanguageBar';
 import { I18nProvider } from '@/i18n';
@@ -109,8 +110,11 @@ function AuthGate() {
         </View>
       </View>
 
-      {/* One globe button for the whole app — top-right, every screen. */}
-      {!(isWide && signedIn) && <TopLanguageBar />}
+      {/* Globe switcher on auth screens and wide layouts; the profile tab carries it once signed in on mobile. */}
+      {!(isWide && signedIn) && phase !== 'signedIn' && <TopLanguageBar />}
+
+      {/* Branded intro plays once on startup, then unmounts itself. */}
+      <BrandedSplash />
     </>
   );
 }

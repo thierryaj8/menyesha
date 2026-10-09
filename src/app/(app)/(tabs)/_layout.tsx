@@ -24,7 +24,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.gold,
+        tabBarActiveTintColor: colors.brand,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: isWide
           ? { display: 'none' }
@@ -83,7 +83,7 @@ export default function TabsLayout() {
                 width: 52,
                 height: 52,
                 borderRadius: radius.pill,
-                backgroundColor: focused ? colors.gold : colors.brand,
+                backgroundColor: colors.brand,
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: Platform.OS === 'ios' ? 8 : 4,
@@ -132,7 +132,6 @@ export default function TabsLayout() {
       {/* Hidden screens — kept in route group but not shown in tab bar */}
       <Tabs.Screen name="reports" options={{ href: null }} />
       <Tabs.Screen name="rewards" options={{ href: null }} />
-      <Tabs.Screen name="police" options={{ href: null }} />
     </Tabs>
   );
 }

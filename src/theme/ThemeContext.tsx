@@ -28,17 +28,17 @@ interface ThemeValue {
   colors: Colors;
 }
 
-/** Light palette as the default so components work outside the provider too. */
+/** The product experience is designed around the dark civic-safety interface. */
 const ThemeContext = createContext<ThemeValue>({
-  mode: 'light',
+  mode: 'dark',
   setMode: () => {},
-  isDark: false,
-  colors: lightColors,
+  isDark: true,
+  colors: darkColors,
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   // Follow the phone until a saved choice is restored.
-  const [mode, setModeState] = useState<ThemeMode>('system');
+  const [mode, setModeState] = useState<ThemeMode>('dark');
   const systemScheme = useColorScheme();
 
   useEffect(() => {

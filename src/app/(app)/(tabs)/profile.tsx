@@ -1,7 +1,7 @@
 /**
  * Profile screen.
  * Shows user info, FixPoints summary, report count, settings
- * (language, appearance, notifications), admin portal entry, and logout.
+ * (language, appearance, notifications), and logout.
  */
 import { Ionicons } from '@expo/vector-icons';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -14,7 +14,7 @@ import { HIT_SIZE, radius, sans, serif, shadow, spacing, useTheme, type Colors }
 
 export default function ProfileScreen() {
   const t = useT();
-  const { user, balance, myReports, isAdmin, adminUser, logout } = useApp();
+  const { user, balance, myReports, logout } = useApp();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -43,14 +43,6 @@ export default function ProfileScreen() {
         <View style={styles.heroText}>
           <Text style={styles.heroName}>{user?.username ?? 'Citizen'}</Text>
           <Text style={styles.heroPhone}>{user?.phone ?? ''}</Text>
-          {isAdmin && adminUser && (
-            <View style={styles.adminBadge}>
-              <Ionicons name="shield-checkmark" size={11} color={colors.gold} />
-              <Text style={styles.adminBadgeText}>
-                {adminUser.role.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-              </Text>
-            </View>
-          )}
         </View>
       </View>
 
@@ -117,28 +109,6 @@ export default function ProfileScreen() {
         <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
       </Pressable>
 
-      {/* Admin portal — visible only to admin users */}
-      {isAdmin && (
-        <>
-          <Text style={styles.sectionLabel}>{t('admin.portal')}</Text>
-          <Pressable
-            onPress={() => router.push('/admin' as any)}
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.settingsRow, styles.adminRow, pressed && styles.pressed]}
-          >
-            <View style={[styles.rowIcon, styles.adminRowIcon]}>
-              <Ionicons name="settings" size={20} color={colors.white} />
-            </View>
-            <View style={styles.rowBody}>
-              <Text style={[styles.rowTitle, { color: colors.white }]}>{t('profile.adminPortal')}</Text>
-              <Text style={[styles.rowSub, { color: 'rgba(255,255,255,0.7)' }]}>
-                {t('profile.adminPortalNote')}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
-          </Pressable>
-        </>
-      )}
 
       {/* Logout */}
       <Pressable
@@ -172,17 +142,6 @@ const makeStyles = (colors: Colors) =>
     heroText: { flex: 1, gap: spacing.xs },
     heroName: { ...serif.h2, color: colors.text },
     heroPhone: { ...sans.small, color: colors.textMuted },
-    adminBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      alignSelf: 'flex-start',
-      backgroundColor: colors.goldSoft,
-      borderRadius: radius.pill,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
-    },
-    adminBadgeText: { ...sans.tiny, color: colors.gold },
 
     pointsCard: {
       flexDirection: 'row',
@@ -240,13 +199,6 @@ const makeStyles = (colors: Colors) =>
       marginBottom: spacing.sm,
       minHeight: HIT_SIZE,
       ...shadow.card,
-    },
-    adminRow: {
-      backgroundColor: colors.brand,
-      borderColor: 'transparent',
-    },
-    adminRowIcon: {
-      backgroundColor: 'rgba(255,255,255,0.15)',
     },
     rowIcon: {
       width: 36,

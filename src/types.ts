@@ -351,41 +351,6 @@ export interface WebBanner {
 
 // ─── Admin Roles & Users ─────────────────────────────────────────────────────
 
-export type AdminRole =
-  | 'super_admin'
-  | 'content_admin'
-  | 'police_admin'
-  | 'traffic_admin'
-  | 'advertising_admin';
-
-export interface AdminUser {
-  id: string;
-  username: string;
-  email: string;
-  role: AdminRole;
-  departmentId?: string;
-  isActive: boolean;
-  /** ISO date string */
-  createdAt: string;
-  lastLoginAt?: string;
-  permissions: AdminPermission[];
-}
-
-export type AdminPermission =
-  | 'manage_departments'
-  | 'manage_accounts'
-  | 'manage_announcements'
-  | 'manage_traffic_docs'
-  | 'manage_posts'
-  | 'manage_videos'
-  | 'manage_photos'
-  | 'manage_news'
-  | 'manage_newsletters'
-  | 'manage_ads'
-  | 'manage_banners'
-  | 'view_analytics'
-  | 'manage_roles';
-
 // ─── Citizen Notifications ───────────────────────────────────────────────────
 
 export type NotificationKind =
@@ -407,31 +372,6 @@ export interface AppNotification {
   createdAt: string;
   isRead: boolean;
   isUrgent?: boolean;
-}
-
-// ─── Administrative Activity Log ─────────────────────────────────────────────
-
-export type ActivityAction =
-  | 'created'
-  | 'updated'
-  | 'published'
-  | 'unpublished'
-  | 'archived'
-  | 'verified'
-  | 'suspended'
-  | 'scheduled';
-
-export interface AdminActivity {
-  id: string;
-  action: ActivityAction;
-  /** Human-readable description, e.g. "Published road closure notice". */
-  description: string;
-  /** Which admin performed it. */
-  actor: string;
-  /** Area of the portal: Content, Police, Traffic, Advertising. */
-  area: 'content' | 'police' | 'traffic' | 'advertising' | 'system';
-  /** ISO date string */
-  at: string;
 }
 
 // ─── Discover Content ────────────────────────────────────────────────────────
