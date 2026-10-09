@@ -1,17 +1,18 @@
 /**
  * Admin › Web Banners Management
  */
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { SearchBar } from '@/components/SearchBar';
 import { FilterChips } from '@/components/FilterChips';
 import { TopBar } from '@/components/TopBar';
+import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
-import type { BannerLocation, BannerStatus } from '@/types';
+import type { BannerLocation, BannerStatus, WebBanner } from '@/types';
 
 type LocFilter = 'all' | BannerLocation;
 
@@ -35,11 +36,12 @@ const LOCATION_ICONS: Record<BannerLocation, string> = {
 
 export default function AdminBannersScreen() {
   const t = useT();
-  const { webBanners } = useApp();
+  const { webBanners, createWebBanner, updateWebBanner, deleteWebBanner } = useApp();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [query, setQuery] = useState('');
   const [locFilter, setLocFilter] = useState<LocFilter>('all');
+  const [editor, setEditor] = useState<{ open: boolean; banner?: WebBanner }>({ open: false });
 
   const filtered = webBanners.filter((b) => {
     const q = query.toLowerCase();
@@ -58,13 +60,43 @@ export default function AdminBannersScreen() {
     { value: 'announcements', label: 'Announcements' },
   ];
 
+  const fields = (banner?: WebBanner): CrudField[] => [
+    { key: 'title', label: 'Title', value: banner?.title ?? '', placeholder: 'Banner title' },
+    { key: 'bannerText', label: 'Banner text', value: banner?.bannerText ?? '', placeholder: 'Short promotional message' },
+    { key: 'location', label: 'Location', value: banner?.location ?? 'home', placeholder: 'home' },
+    { key: 'status', label: 'Status', value: banner?.status ?? 'draft', placeholder: 'draft' },
+    { key: 'ctaLabel', label: 'CTA label', value: banner?.ctaLabel ?? '', placeholder: 'Learn more' },
+    { key: 'ctaUrl', label: 'CTA URL', value: banner?.ctaUrl ?? '', placeholder: 'https://example.com' },
+  ];
+  const submit = (values: Record<string, string>) => {
+    const input = {
+      title: values.title.trim(),
+      bannerText: values.bannerText.trim() || undefined,
+      ctaLabel: values.ctaLabel.trim() || undefined,
+      ctaUrl: values.ctaUrl.trim() || undefined,
+      location: (values.location.trim() || 'home') as WebBanner['location'],
+      startDate: editor.banner?.startDate ?? new Date().toISOString(),
+      endDate: editor.banner?.endDate ?? new Date(Date.now() + 86400000 * 30).toISOString(),
+      status: (values.status.trim() || 'draft') as WebBanner['status'],
+      createdBy: editor.banner?.createdBy ?? 'admin-super-01',
+    };
+    if (!input.title) return;
+    if (editor.banner) updateWebBanner(editor.banner.id, input);
+    else createWebBanner(input);
+    setEditor({ open: false });
+  };
+  const remove = (banner: WebBanner) => Alert.alert('Delete banner', `Delete “${banner.title}”?`, [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Delete', style: 'destructive', onPress: () => deleteWebBanner(banner.id) },
+  ]);
+
   return (
     <Screen>
       <TopBar title={t('admin.ads.banners')} />
 
       <View style={styles.actionBar}>
         <SearchBar value={query} onChangeText={setQuery} placeholder={t('admin.search')} />
-        <Pressable onPress={() => {}} style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}>
+        <Pressable onPress={() => setEditor({ open: true })} style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}>
           <Ionicons name="add" size={20} color={colors.white} />
           <Text style={styles.createBtnText}>{t('admin.ads.newBanner')}</Text>
         </Pressable>
@@ -107,21 +139,26 @@ export default function AdminBannersScreen() {
                 <Text style={styles.dates}>{start} → {end}</Text>
               </View>
               <View style={styles.actions}>
-                <Pressable onPress={() => {}} style={styles.actionBtn}>
+                <Pressable onPress={() => setEditor({ open: true, banner })} style={styles.actionBtn}>
                   <Ionicons name="create-outline" size={16} color={colors.brand} />
                 </Pressable>
-                <Pressable onPress={() => {}} style={styles.actionBtn}>
-                  <Ionicons
-                    name={banner.status === 'active' ? 'pause-circle-outline' : 'play-circle-outline'}
-                    size={16}
-                    color={colors.textMuted}
-                  />
+                <Pressable onPress={() => remove(banner)} style={[styles.actionBtn, styles.deleteAction]}>
+                  <Ionicons name="trash-outline" size={16} color={colors.emergency} />
                 </Pressable>
               </View>
             </View>
           );
         })}
       </View>
+
+      <AdminCrudModal
+        visible={editor.open}
+        title={editor.banner ? 'Edit banner' : 'Create banner'}
+        submitLabel={editor.banner ? 'Save changes' : 'Create banner'}
+        initialValues={fields(editor.banner)}
+        onClose={() => setEditor({ open: false })}
+        onSubmit={submit}
+      />
     </Screen>
   );
 }
@@ -166,5 +203,6 @@ const makeStyles = (colors: Colors) =>
       width: 32, height: 32, alignItems: 'center', justifyContent: 'center',
       borderRadius: radius.sm, backgroundColor: colors.sage,
     },
+    deleteAction: { backgroundColor: colors.emergencySoft },
     pressed: { opacity: 0.8 },
   });

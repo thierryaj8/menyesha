@@ -2,16 +2,18 @@
  * Admin › Police Management › Police Accounts
  * Manage official police communication accounts (admin users).
  */
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { SearchBar } from '@/components/SearchBar';
 import { TopBar } from '@/components/TopBar';
+import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
 import { ROLE_LABELS } from '@/data/adminUsers';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
+import type { AdminRole, AdminUser } from '@/types';
 
 const ROLE_COLORS: Record<string, string> = {
   super_admin: '#B91C1C',
@@ -23,10 +25,11 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function AdminAccountsScreen() {
   const t = useT();
-  const { adminUsers } = useApp();
+  const { adminUsers, createAdminUser, updateAdminUser, deleteAdminUser } = useApp();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [query, setQuery] = useState('');
+  const [editor, setEditor] = useState<{ open: boolean; account?: AdminUser }>({ open: false });
 
   const filtered = adminUsers.filter((u) => {
     const q = query.toLowerCase();
@@ -38,6 +41,32 @@ export default function AdminAccountsScreen() {
     );
   });
 
+  const fields = (account?: AdminUser): CrudField[] => [
+    { key: 'username', label: 'Username', value: account?.username ?? '', placeholder: 'admin.username' },
+    { key: 'email', label: 'Email', value: account?.email ?? '', placeholder: 'admin@example.com', keyboardType: 'email-address' },
+    { key: 'role', label: 'Role', value: account?.role ?? 'content_admin', placeholder: 'content_admin' },
+    { key: 'departmentId', label: 'Department ID', value: account?.departmentId ?? '', placeholder: 'rnp-hq' },
+    { key: 'isActive', label: 'Active', value: account?.isActive ? 'true' : 'false', placeholder: 'true' },
+  ];
+  const submit = (values: Record<string, string>) => {
+    const input = {
+      username: values.username.trim(),
+      email: values.email.trim(),
+      role: (values.role.trim() || 'content_admin') as AdminRole,
+      departmentId: values.departmentId.trim() || undefined,
+      isActive: values.isActive.trim().toLowerCase() !== 'false',
+      permissions: editor.account?.permissions ?? [],
+    };
+    if (!input.username || !input.email) return;
+    if (editor.account) updateAdminUser(editor.account.id, input);
+    else createAdminUser(input);
+    setEditor({ open: false });
+  };
+  const remove = (account: AdminUser) => Alert.alert('Delete account', `Delete “${account.username}”?`, [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Delete', style: 'destructive', onPress: () => deleteAdminUser(account.id) },
+  ]);
+
   return (
     <Screen>
       <TopBar title={t('admin.police.accounts')} />
@@ -45,7 +74,7 @@ export default function AdminAccountsScreen() {
       <View style={styles.actionBar}>
         <SearchBar value={query} onChangeText={setQuery} placeholder={t('admin.search')} />
         <Pressable
-          onPress={() => {}}
+          onPress={() => setEditor({ open: true })}
           style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}
         >
           <Ionicons name="add" size={20} color={colors.white} />
@@ -100,17 +129,35 @@ export default function AdminAccountsScreen() {
                   </Text>
                 </View>
               </View>
-              <Pressable
-                onPress={() => {}}
-                accessibilityLabel={t('admin.edit')}
-                style={styles.actionBtn}
-              >
-                <Ionicons name="create-outline" size={18} color={colors.brand} />
-              </Pressable>
+              <View style={styles.actions}>
+                <Pressable
+                  onPress={() => setEditor({ open: true, account })}
+                  accessibilityLabel={t('admin.edit')}
+                  style={styles.actionBtn}
+                >
+                  <Ionicons name="create-outline" size={18} color={colors.brand} />
+                </Pressable>
+                <Pressable
+                  onPress={() => remove(account)}
+                  accessibilityLabel="Delete account"
+                  style={[styles.actionBtn, styles.deleteAction]}
+                >
+                  <Ionicons name="trash-outline" size={18} color={colors.emergency} />
+                </Pressable>
+              </View>
             </View>
           );
         })}
       </View>
+
+      <AdminCrudModal
+        visible={editor.open}
+        title={editor.account ? 'Edit account' : 'Create account'}
+        submitLabel={editor.account ? 'Save changes' : 'Create account'}
+        initialValues={fields(editor.account)}
+        onClose={() => setEditor({ open: false })}
+        onSubmit={submit}
+      />
     </Screen>
   );
 }
@@ -177,6 +224,7 @@ const makeStyles = (colors: Colors) =>
     statusText: { ...sans.tiny, fontSize: 10 },
     activeText: { color: colors.success },
     inactiveText: { color: colors.emergency },
+    actions: { flexDirection: 'row', gap: spacing.xs },
     actionBtn: {
       width: 36,
       height: 36,
@@ -186,5 +234,6 @@ const makeStyles = (colors: Colors) =>
       backgroundColor: colors.brandSoft,
       flexShrink: 0,
     },
+    deleteAction: { backgroundColor: colors.emergencySoft },
     pressed: { opacity: 0.8 },
   });

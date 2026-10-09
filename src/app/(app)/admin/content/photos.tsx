@@ -1,25 +1,56 @@
 /**
  * Admin › Content Management › Photos
  */
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { SearchBar } from '@/components/SearchBar';
 import { TopBar } from '@/components/TopBar';
+import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
+import type { DiscoverPhoto } from '@/types';
 
 export default function AdminPhotosScreen() {
   const t = useT();
-  const { discoverPhotos, searchDiscoverPhotos } = useApp();
+  const { discoverPhotos, searchDiscoverPhotos, createDiscoverPhoto, updateDiscoverPhoto, deleteDiscoverPhoto } = useApp();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [query, setQuery] = useState('');
+  const [editor, setEditor] = useState<{ open: boolean; photo?: DiscoverPhoto }>({ open: false });
 
   const photos = query.trim() ? searchDiscoverPhotos(query) : discoverPhotos;
   const totalViews = photos.reduce((sum, p) => sum + p.views, 0);
+  const fields = (photo?: DiscoverPhoto): CrudField[] => [
+    { key: 'title', label: 'Title', value: photo?.title ?? '', placeholder: 'Photo title' },
+    { key: 'departmentName', label: 'Department', value: photo?.departmentName ?? '', placeholder: 'Department name' },
+    { key: 'caption', label: 'Caption', value: photo?.caption ?? '', placeholder: 'Photo caption', multiline: true },
+    { key: 'imageUri', label: 'Image URL', value: photo?.imageUri ?? '', placeholder: 'https://example.com/image.jpg' },
+    { key: 'tags', label: 'Tags', value: photo?.tags.join(', ') ?? '', placeholder: 'community, outreach' },
+  ];
+  const submit = (values: Record<string, string>) => {
+    const input = {
+      departmentId: editor.photo?.departmentId ?? 'admin-created',
+      departmentName: values.departmentName.trim() || 'Rwanda National Police',
+      title: values.title.trim(),
+      caption: values.caption.trim(),
+      imageUri: values.imageUri.trim(),
+      tags: values.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+      publishedAt: editor.photo?.publishedAt ?? new Date().toISOString(),
+      views: editor.photo?.views ?? 0,
+      isVerified: editor.photo?.isVerified ?? true,
+    };
+    if (!input.title || !input.caption) return;
+    if (editor.photo) updateDiscoverPhoto(editor.photo.id, input);
+    else createDiscoverPhoto(input);
+    setEditor({ open: false });
+  };
+  const remove = (photo: DiscoverPhoto) => Alert.alert('Delete photo', `Delete “${photo.title}”?`, [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Delete', style: 'destructive', onPress: () => deleteDiscoverPhoto(photo.id) },
+  ]);
 
   return (
     <Screen>
@@ -27,7 +58,7 @@ export default function AdminPhotosScreen() {
 
       <View style={styles.actionBar}>
         <SearchBar value={query} onChangeText={setQuery} placeholder={t('admin.search')} />
-        <Pressable onPress={() => {}} style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}>
+        <Pressable onPress={() => setEditor({ open: true })} style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}>
           <Ionicons name="add" size={20} color={colors.white} />
           <Text style={styles.createBtnText}>{t('admin.create')}</Text>
         </Pressable>
@@ -59,10 +90,10 @@ export default function AdminPhotosScreen() {
                 </View>
               </View>
               <View style={styles.actions}>
-                <Pressable onPress={() => {}} style={styles.actionBtn}>
+                <Pressable onPress={() => setEditor({ open: true, photo })} style={styles.actionBtn}>
                   <Ionicons name="create-outline" size={16} color={colors.brand} />
                 </Pressable>
-                <Pressable onPress={() => {}} style={styles.actionBtn}>
+                <Pressable onPress={() => remove(photo)} style={styles.actionBtn}>
                   <Ionicons name="trash-outline" size={16} color={colors.emergency} />
                 </Pressable>
               </View>
@@ -70,6 +101,15 @@ export default function AdminPhotosScreen() {
           );
         })}
       </View>
+
+      <AdminCrudModal
+        visible={editor.open}
+        title={editor.photo ? 'Edit photo' : 'Create photo'}
+        submitLabel={editor.photo ? 'Save changes' : 'Create photo'}
+        initialValues={fields(editor.photo)}
+        onClose={() => setEditor({ open: false })}
+        onSubmit={submit}
+      />
     </Screen>
   );
 }

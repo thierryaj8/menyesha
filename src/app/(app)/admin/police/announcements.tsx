@@ -2,17 +2,18 @@
  * Admin › Police Management › Announcements
  * Create, edit, publish/unpublish, archive official police announcements.
  */
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { SearchBar } from '@/components/SearchBar';
 import { TopBar } from '@/components/TopBar';
 import { FilterChips } from '@/components/FilterChips';
+import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
-import type { AnnouncementType } from '@/types';
+import type { AnnouncementType, PoliceAnnouncement } from '@/types';
 
 type Filter = 'all' | AnnouncementType;
 
@@ -26,11 +27,12 @@ const TYPE_COLORS: Record<AnnouncementType, string> = {
 
 export default function AdminAnnouncementsScreen() {
   const t = useT();
-  const { searchAnnouncements } = useApp();
+  const { searchAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement } = useApp();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [editor, setEditor] = useState<{ open: boolean; announcement?: PoliceAnnouncement }>({ open: false });
 
   const filtered = searchAnnouncements(
     query,
@@ -46,6 +48,33 @@ export default function AdminAnnouncementsScreen() {
     { value: 'event_notice' as Filter, label: t('announcements.filterEvent') },
   ];
 
+  const fields = (announcement?: PoliceAnnouncement): CrudField[] => [
+    { key: 'headline', label: 'Headline', value: announcement?.headline ?? '', placeholder: 'Announcement headline' },
+    { key: 'type', label: 'Type', value: announcement?.type ?? 'public_safety', placeholder: 'public_safety' },
+    { key: 'authority', label: 'Authority', value: announcement?.authority ?? '', placeholder: 'Department name' },
+    { key: 'body', label: 'Message', value: announcement?.body ?? '', placeholder: 'Full announcement message', multiline: true },
+    { key: 'locations', label: 'Locations', value: announcement?.locations?.join(', ') ?? '', placeholder: 'Kigali, Nyarugenge' },
+  ];
+  const submit = (values: Record<string, string>) => {
+    const input = {
+      type: (values.type.trim() || 'public_safety') as AnnouncementType,
+      headline: values.headline.trim(),
+      body: values.body.trim(),
+      authority: values.authority.trim() || 'Rwanda National Police',
+      publishedAt: editor.announcement?.publishedAt ?? new Date().toISOString(),
+      locations: values.locations.split(',').map((value) => value.trim()).filter(Boolean),
+      isUrgent: editor.announcement?.isUrgent ?? false,
+    };
+    if (!input.headline || !input.body) return;
+    if (editor.announcement) updateAnnouncement(editor.announcement.id, input);
+    else createAnnouncement(input);
+    setEditor({ open: false });
+  };
+  const remove = (announcement: PoliceAnnouncement) => Alert.alert('Delete announcement', `Delete “${announcement.headline}”?`, [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Delete', style: 'destructive', onPress: () => deleteAnnouncement(announcement.id) },
+  ]);
+
   return (
     <Screen>
       <TopBar title={t('admin.police.announcements')} />
@@ -53,7 +82,7 @@ export default function AdminAnnouncementsScreen() {
       <View style={styles.actionBar}>
         <SearchBar value={query} onChangeText={setQuery} placeholder={t('admin.search')} />
         <Pressable
-          onPress={() => {}}
+          onPress={() => setEditor({ open: true })}
           style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}
         >
           <Ionicons name="add" size={20} color={colors.white} />
@@ -96,17 +125,26 @@ export default function AdminAnnouncementsScreen() {
                 <Text style={styles.meta}>{ann.authority} · {date}</Text>
               </View>
               <View style={styles.actions}>
-                <Pressable onPress={() => {}} style={styles.actionBtn}>
+                <Pressable onPress={() => setEditor({ open: true, announcement: ann })} style={styles.actionBtn}>
                   <Ionicons name="create-outline" size={16} color={colors.brand} />
                 </Pressable>
-                <Pressable onPress={() => {}} style={styles.actionBtn}>
-                  <Ionicons name="ellipsis-vertical" size={16} color={colors.textMuted} />
+                <Pressable onPress={() => remove(ann)} style={styles.actionBtn}>
+                  <Ionicons name="trash-outline" size={16} color={colors.emergency} />
                 </Pressable>
               </View>
             </View>
           );
         })}
       </View>
+
+      <AdminCrudModal
+        visible={editor.open}
+        title={editor.announcement ? 'Edit announcement' : 'Create announcement'}
+        submitLabel={editor.announcement ? 'Save changes' : 'Create announcement'}
+        initialValues={fields(editor.announcement)}
+        onClose={() => setEditor({ open: false })}
+        onSubmit={submit}
+      />
     </Screen>
   );
 }

@@ -7,16 +7,19 @@ interface ScreenProps {
   children: ReactNode;
   /** A fixed action bar under the content. Keeps one primary action visible. */
   footer?: ReactNode;
+  /** A fixed bar pinned above the scrollable content (e.g. MobileHeader). */
+  header?: ReactNode;
   scroll?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
 }
 
-export function Screen({ children, footer, scroll = true, contentStyle }: ScreenProps) {
+export function Screen({ children, footer, header, scroll = true, contentStyle }: ScreenProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {header ? <View>{header}</View> : null}
       {scroll ? (
         <ScrollView
           style={styles.flex}

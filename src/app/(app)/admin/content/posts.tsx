@@ -1,24 +1,55 @@
 /**
  * Admin › Content Management › Posts
  */
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { SearchBar } from '@/components/SearchBar';
 import { TopBar } from '@/components/TopBar';
+import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
+import type { DiscoverPost } from '@/types';
 
 export default function AdminPostsScreen() {
   const t = useT();
-  const { discoverPosts, searchDiscoverPosts } = useApp();
+  const { discoverPosts, searchDiscoverPosts, createDiscoverPost, updateDiscoverPost, deleteDiscoverPost } = useApp();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [query, setQuery] = useState('');
+  const [editor, setEditor] = useState<{ open: boolean; post?: DiscoverPost }>({ open: false });
 
   const posts = query.trim() ? searchDiscoverPosts(query) : discoverPosts;
+  const fields = (post?: DiscoverPost): CrudField[] => [
+    { key: 'title', label: 'Title', value: post?.title ?? '', placeholder: 'Post title' },
+    { key: 'departmentName', label: 'Department', value: post?.departmentName ?? '', placeholder: 'Department name' },
+    { key: 'body', label: 'Body', value: post?.body ?? '', placeholder: 'Post content', multiline: true },
+    { key: 'tags', label: 'Tags', value: post?.tags.join(', ') ?? '', placeholder: 'safety, community' },
+  ];
+
+  const submit = (values: Record<string, string>) => {
+    const input = {
+      departmentId: editor.post?.departmentId ?? 'admin-created',
+      departmentName: values.departmentName.trim() || 'Rwanda National Police',
+      title: values.title.trim(),
+      body: values.body.trim(),
+      tags: values.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+      publishedAt: editor.post?.publishedAt ?? new Date().toISOString(),
+      views: editor.post?.views ?? 0,
+      likes: editor.post?.likes ?? 0,
+      isVerified: editor.post?.isVerified ?? true,
+    };
+    if (!input.title || !input.body) return;
+    if (editor.post) updateDiscoverPost(editor.post.id, input);
+    else createDiscoverPost(input);
+    setEditor({ open: false });
+  };
+  const remove = (post: DiscoverPost) => Alert.alert('Delete post', `Delete “${post.title}”?`, [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Delete', style: 'destructive', onPress: () => deleteDiscoverPost(post.id) },
+  ]);
 
   return (
     <Screen>
@@ -26,7 +57,7 @@ export default function AdminPostsScreen() {
 
       <View style={styles.actionBar}>
         <SearchBar value={query} onChangeText={setQuery} placeholder={t('admin.search')} />
-        <Pressable onPress={() => {}} style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}>
+        <Pressable onPress={() => setEditor({ open: true })} style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}>
           <Ionicons name="add" size={20} color={colors.white} />
           <Text style={styles.createBtnText}>{t('admin.create')}</Text>
         </Pressable>
@@ -58,10 +89,10 @@ export default function AdminPostsScreen() {
                 </View>
               </View>
               <View style={styles.actions}>
-                <Pressable onPress={() => {}} style={styles.actionBtn}>
+                <Pressable onPress={() => setEditor({ open: true, post })} style={styles.actionBtn}>
                   <Ionicons name="create-outline" size={16} color={colors.brand} />
                 </Pressable>
-                <Pressable onPress={() => {}} style={styles.actionBtn}>
+                <Pressable onPress={() => remove(post)} style={styles.actionBtn}>
                   <Ionicons name="trash-outline" size={16} color={colors.emergency} />
                 </Pressable>
               </View>
@@ -69,6 +100,15 @@ export default function AdminPostsScreen() {
           );
         })}
       </View>
+
+      <AdminCrudModal
+        visible={editor.open}
+        title={editor.post ? 'Edit post' : 'Create post'}
+        submitLabel={editor.post ? 'Save changes' : 'Create post'}
+        initialValues={fields(editor.post)}
+        onClose={() => setEditor({ open: false })}
+        onSubmit={submit}
+      />
     </Screen>
   );
 }

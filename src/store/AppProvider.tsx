@@ -119,11 +119,20 @@ interface AppValue {
   getArticle: (id: string) => MediaArticle | undefined;
   getAnnouncement: (id: string) => PoliceAnnouncement | undefined;
   getTrafficDoc: (id: string) => TrafficDocument | undefined;
+  createAnnouncement: (input: Omit<PoliceAnnouncement, 'id'>) => void;
+  updateAnnouncement: (id: string, input: Partial<Omit<PoliceAnnouncement, 'id'>>) => void;
+  deleteAnnouncement: (id: string) => void;
+  createTrafficDoc: (input: Omit<TrafficDocument, 'id'>) => void;
+  updateTrafficDoc: (id: string, input: Partial<Omit<TrafficDocument, 'id'>>) => void;
+  deleteTrafficDoc: (id: string) => void;
 
   // ─── Departments ─────────────────────────────────────────────────────
   departments: PoliceDepartment[];
   getDepartment: (id: string) => PoliceDepartment | undefined;
   searchDepartments: (query: string) => PoliceDepartment[];
+  createDepartment: (input: Omit<PoliceDepartment, 'id' | 'createdAt'>) => void;
+  updateDepartment: (id: string, input: Partial<Omit<PoliceDepartment, 'id' | 'createdAt'>>) => void;
+  deleteDepartment: (id: string) => void;
 
   // ─── Discover content ────────────────────────────────────────────────
   discoverPosts: DiscoverPost[];
@@ -132,6 +141,23 @@ interface AppValue {
   searchDiscoverPosts: (query: string) => DiscoverPost[];
   searchDiscoverVideos: (query: string) => DiscoverVideo[];
   searchDiscoverPhotos: (query: string) => DiscoverPhoto[];
+  createDiscoverPost: (input: Omit<DiscoverPost, 'id'>) => void;
+  updateDiscoverPost: (id: string, input: Partial<Omit<DiscoverPost, 'id'>>) => void;
+  deleteDiscoverPost: (id: string) => void;
+  createDiscoverVideo: (input: Omit<DiscoverVideo, 'id'>) => void;
+  updateDiscoverVideo: (id: string, input: Partial<Omit<DiscoverVideo, 'id'>>) => void;
+  deleteDiscoverVideo: (id: string) => void;
+  createDiscoverPhoto: (input: Omit<DiscoverPhoto, 'id'>) => void;
+  updateDiscoverPhoto: (id: string, input: Partial<Omit<DiscoverPhoto, 'id'>>) => void;
+  deleteDiscoverPhoto: (id: string) => void;
+
+  // ─── Articles & newsletters ─────────────────────────────────────────
+  createArticle: (input: Omit<MediaArticle, 'id'>) => void;
+  updateArticle: (id: string, input: Partial<Omit<MediaArticle, 'id'>>) => void;
+  deleteArticle: (id: string) => void;
+  createNewsletter: (input: Omit<Newsletter, 'id'>) => void;
+  updateNewsletter: (id: string, input: Partial<Omit<Newsletter, 'id'>>) => void;
+  deleteNewsletter: (id: string) => void;
 
   // ─── Advertisements & Banners ────────────────────────────────────────
   advertisements: Advertisement[];
@@ -140,6 +166,12 @@ interface AppValue {
   getActiveWebBanners: (location?: WebBanner['location']) => WebBanner[];
   recordAdImpression: (id: string) => void;
   recordAdClick: (id: string) => void;
+  createAdvertisement: (input: Omit<Advertisement, 'id' | 'createdAt'>) => void;
+  updateAdvertisement: (id: string, input: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => void;
+  deleteAdvertisement: (id: string) => void;
+  createWebBanner: (input: Omit<WebBanner, 'id' | 'createdAt'>) => void;
+  updateWebBanner: (id: string, input: Partial<Omit<WebBanner, 'id' | 'createdAt'>>) => void;
+  deleteWebBanner: (id: string) => void;
 
   // ─── Notifications ───────────────────────────────────────────────────
   notifications: AppNotification[];
@@ -152,6 +184,9 @@ interface AppValue {
   adminUser: AdminUser | null;
   isAdmin: boolean;
   adminUsers: AdminUser[];
+  createAdminUser: (input: Omit<AdminUser, 'id' | 'createdAt' | 'lastLoginAt'>) => void;
+  updateAdminUser: (id: string, input: Partial<Omit<AdminUser, 'id' | 'createdAt'>>) => void;
+  deleteAdminUser: (id: string) => void;
   recentActivity: AdminActivity[];
   /** Role-based gate — Super Admin always passes. */
   can: (permission: AdminPermission) => boolean;
@@ -193,6 +228,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [weekly, setWeekly] = useState(SEED_WEEKLY);
   const [sentToday, setSentToday] = useState<string[]>([]);
   const [draft, setDraft] = useState<ReportDraft>(emptyDraft);
+
+  const [announcements, setAnnouncements] = useState<PoliceAnnouncement[]>(ANNOUNCEMENTS);
+  const [trafficDocs, setTrafficDocs] = useState<TrafficDocument[]>(TRAFFIC_DOCS);
+  const [articles, setArticles] = useState<MediaArticle[]>(ARTICLES);
+  const [newsletters, setNewsletters] = useState<Newsletter[]>(NEWSLETTERS);
+  const [departments, setDepartments] = useState<PoliceDepartment[]>(POLICE_DEPARTMENTS);
+  const [discoverPosts, setDiscoverPosts] = useState<DiscoverPost[]>(DISCOVER_POSTS);
+  const [discoverVideos, setDiscoverVideos] = useState<DiscoverVideo[]>(DISCOVER_VIDEOS);
+  const [discoverPhotos, setDiscoverPhotos] = useState<DiscoverPhoto[]>(DISCOVER_PHOTOS);
+  const [advertisements, setAdvertisements] = useState<Advertisement[]>(ADVERTISEMENTS);
+  const [webBanners, setWebBanners] = useState<WebBanner[]>(WEB_BANNERS);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>(ADMIN_USERS);
 
   // Police hub state
   const [campaignStats, setCampaignStats] = useState<
@@ -328,7 +375,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const searchAnnouncements = useCallback(
     (query: string, type?: AnnouncementType): PoliceAnnouncement[] => {
       const q = query.toLowerCase().trim();
-      return ANNOUNCEMENTS.filter((a) => {
+      return announcements.filter((a) => {
         const matchesType = type ? a.type === type : true;
         const matchesQuery =
           q.length === 0 ||
@@ -338,13 +385,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return matchesType && matchesQuery;
       });
     },
-    [],
+    [announcements],
   );
 
   const searchTrafficDocs = useCallback(
     (query: string, category?: TrafficDocCategory): TrafficDocument[] => {
       const q = query.toLowerCase().trim();
-      return TRAFFIC_DOCS.filter((d) => {
+      return trafficDocs.filter((d) => {
         const matchesCat = category ? d.category === category : true;
         const matchesQuery =
           q.length === 0 ||
@@ -354,13 +401,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return matchesCat && matchesQuery;
       });
     },
-    [],
+    [trafficDocs],
   );
 
   const searchArticles = useCallback(
     (query: string, category?: MediaCategory): MediaArticle[] => {
       const q = query.toLowerCase().trim();
-      return ARTICLES.filter((a) => {
+      return articles.filter((a) => {
         const matchesCat = category ? a.category === category : true;
         const matchesQuery =
           q.length === 0 ||
@@ -370,7 +417,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return matchesCat && matchesQuery && a.status === 'published';
       });
     },
-    [],
+    [articles],
   );
 
   const recordCampaignView = useCallback((id: string) => {
@@ -388,36 +435,80 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getNewsletter = useCallback(
-    (id: string) => NEWSLETTERS.find((n) => n.id === id),
-    [],
+    (id: string) => newsletters.find((n) => n.id === id),
+    [newsletters],
   );
+
+  const createNewsletter = useCallback((input: Omit<Newsletter, 'id'>) => {
+    setNewsletters((current) => [{ ...input, id: makeId() }, ...current]);
+  }, []);
+  const updateNewsletter = useCallback((id: string, input: Partial<Omit<Newsletter, 'id'>>) => {
+    setNewsletters((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }, []);
+  const deleteNewsletter = useCallback((id: string) => {
+    setNewsletters((current) => current.filter((item) => item.id !== id));
+  }, []);
 
   const getArticle = useCallback(
-    (id: string) => ARTICLES.find((a) => a.id === id),
-    [],
+    (id: string) => articles.find((a) => a.id === id),
+    [articles],
   );
+
+  const createArticle = useCallback((input: Omit<MediaArticle, 'id'>) => {
+    setArticles((current) => [{ ...input, id: makeId() }, ...current]);
+  }, []);
+  const updateArticle = useCallback((id: string, input: Partial<Omit<MediaArticle, 'id'>>) => {
+    setArticles((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }, []);
+  const deleteArticle = useCallback((id: string) => {
+    setArticles((current) => current.filter((item) => item.id !== id));
+  }, []);
 
   const getAnnouncement = useCallback(
-    (id: string) => ANNOUNCEMENTS.find((a) => a.id === id),
-    [],
+    (id: string) => announcements.find((a) => a.id === id),
+    [announcements],
   );
 
+  const createAnnouncement = useCallback((input: Omit<PoliceAnnouncement, 'id'>) => {
+    setAnnouncements((current) => [{ ...input, id: makeId() }, ...current]);
+  }, []);
+
+  const updateAnnouncement = useCallback((id: string, input: Partial<Omit<PoliceAnnouncement, 'id'>>) => {
+    setAnnouncements((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }, []);
+
+  const deleteAnnouncement = useCallback((id: string) => {
+    setAnnouncements((current) => current.filter((item) => item.id !== id));
+  }, []);
+
   const getTrafficDoc = useCallback(
-    (id: string) => TRAFFIC_DOCS.find((d) => d.id === id),
-    [],
+    (id: string) => trafficDocs.find((d) => d.id === id),
+    [trafficDocs],
   );
+
+  const createTrafficDoc = useCallback((input: Omit<TrafficDocument, 'id'>) => {
+    setTrafficDocs((current) => [{ ...input, id: makeId() }, ...current]);
+  }, []);
+
+  const updateTrafficDoc = useCallback((id: string, input: Partial<Omit<TrafficDocument, 'id'>>) => {
+    setTrafficDocs((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }, []);
+
+  const deleteTrafficDoc = useCallback((id: string) => {
+    setTrafficDocs((current) => current.filter((item) => item.id !== id));
+  }, []);
 
   // ─── Departments ──────────────────────────────────────────────────────────
 
   const getDepartment = useCallback(
-    (id: string) => POLICE_DEPARTMENTS.find((d) => d.id === id),
-    [],
+    (id: string) => departments.find((d) => d.id === id),
+    [departments],
   );
 
   const searchDepartments = useCallback((query: string): PoliceDepartment[] => {
     const q = query.toLowerCase().trim();
-    if (q.length === 0) return POLICE_DEPARTMENTS.filter((d) => d.isActive);
-    return POLICE_DEPARTMENTS.filter(
+    if (q.length === 0) return departments.filter((d) => d.isActive);
+    return departments.filter(
       (d) =>
         d.isActive &&
         (d.name.toLowerCase().includes(q) ||
@@ -425,6 +516,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
           d.description.toLowerCase().includes(q) ||
           d.location.toLowerCase().includes(q)),
     );
+  }, [departments]);
+
+  const createDepartment = useCallback((input: Omit<PoliceDepartment, 'id' | 'createdAt'>) => {
+    setDepartments((current) => [{ ...input, id: makeId(), createdAt: new Date().toISOString() }, ...current]);
+  }, []);
+
+  const updateDepartment = useCallback((id: string, input: Partial<Omit<PoliceDepartment, 'id' | 'createdAt'>>) => {
+    setDepartments((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }, []);
+
+  const deleteDepartment = useCallback((id: string) => {
+    setDepartments((current) => current.filter((item) => item.id !== id));
   }, []);
 
   // ─── Discover search ──────────────────────────────────────────────────────
@@ -454,13 +557,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const searchDiscoverPhotos = useCallback((query: string): DiscoverPhoto[] => {
     const q = query.toLowerCase().trim();
-    if (q.length === 0) return DISCOVER_PHOTOS;
-    return DISCOVER_PHOTOS.filter(
+    if (q.length === 0) return discoverPhotos;
+    return discoverPhotos.filter(
       (p) =>
         p.title.toLowerCase().includes(q) ||
         (p.caption ?? '').toLowerCase().includes(q) ||
         p.departmentName.toLowerCase().includes(q),
     );
+  }, [discoverPhotos]);
+
+  const createDiscoverPost = useCallback((input: Omit<DiscoverPost, 'id'>) => {
+    setDiscoverPosts((current) => [{ ...input, id: makeId() }, ...current]);
+  }, []);
+  const updateDiscoverPost = useCallback((id: string, input: Partial<Omit<DiscoverPost, 'id'>>) => {
+    setDiscoverPosts((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }, []);
+  const deleteDiscoverPost = useCallback((id: string) => {
+    setDiscoverPosts((current) => current.filter((item) => item.id !== id));
+  }, []);
+  const createDiscoverVideo = useCallback((input: Omit<DiscoverVideo, 'id'>) => {
+    setDiscoverVideos((current) => [{ ...input, id: makeId() }, ...current]);
+  }, []);
+  const updateDiscoverVideo = useCallback((id: string, input: Partial<Omit<DiscoverVideo, 'id'>>) => {
+    setDiscoverVideos((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }, []);
+  const deleteDiscoverVideo = useCallback((id: string) => {
+    setDiscoverVideos((current) => current.filter((item) => item.id !== id));
+  }, []);
+  const createDiscoverPhoto = useCallback((input: Omit<DiscoverPhoto, 'id'>) => {
+    setDiscoverPhotos((current) => [{ ...input, id: makeId() }, ...current]);
+  }, []);
+  const updateDiscoverPhoto = useCallback((id: string, input: Partial<Omit<DiscoverPhoto, 'id'>>) => {
+    setDiscoverPhotos((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }, []);
+  const deleteDiscoverPhoto = useCallback((id: string) => {
+    setDiscoverPhotos((current) => current.filter((item) => item.id !== id));
   }, []);
 
   // ─── Advertisements & Banners ─────────────────────────────────────────────
@@ -468,27 +599,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const getActiveAdvertisements = useCallback(
     (targetPage?: Advertisement['targetPage']): Advertisement[] => {
       const now = new Date().toISOString();
-      return ADVERTISEMENTS.filter((ad) => {
+      return advertisements.filter((ad) => {
         const isActive = ad.status === 'active';
         const inWindow = ad.startDate <= now && ad.endDate >= now;
         const matchesPage = !targetPage || ad.targetPage === targetPage || ad.targetPage === 'all';
         return isActive && inWindow && matchesPage;
       });
     },
-    [],
+    [advertisements],
   );
 
   const getActiveWebBanners = useCallback(
     (location?: WebBanner['location']): WebBanner[] => {
       const now = new Date().toISOString();
-      return WEB_BANNERS.filter((b) => {
+      return webBanners.filter((b) => {
         const isActive = b.status === 'active';
         const inWindow = b.startDate <= now && b.endDate >= now;
         const matchesLocation = !location || b.location === location;
         return isActive && inWindow && matchesLocation;
       });
     },
-    [],
+    [webBanners],
   );
 
   const recordAdImpression = useCallback((id: string) => {
@@ -511,6 +642,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
         views: prev[id]?.views ?? 0,
       },
     }));
+  }, []);
+
+  const createAdvertisement = useCallback((input: Omit<Advertisement, 'id' | 'createdAt'>) => {
+    setAdvertisements((current) => [{ ...input, id: makeId(), createdAt: new Date().toISOString() }, ...current]);
+  }, []);
+  const updateAdvertisement = useCallback((id: string, input: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => {
+    setAdvertisements((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }, []);
+  const deleteAdvertisement = useCallback((id: string) => {
+    setAdvertisements((current) => current.filter((item) => item.id !== id));
+  }, []);
+  const createWebBanner = useCallback((input: Omit<WebBanner, 'id' | 'createdAt'>) => {
+    setWebBanners((current) => [{ ...input, id: makeId(), createdAt: new Date().toISOString() }, ...current]);
+  }, []);
+  const updateWebBanner = useCallback((id: string, input: Partial<Omit<WebBanner, 'id' | 'createdAt'>>) => {
+    setWebBanners((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }, []);
+  const deleteWebBanner = useCallback((id: string) => {
+    setWebBanners((current) => current.filter((item) => item.id !== id));
+  }, []);
+
+  const createAdminUser = useCallback((input: Omit<AdminUser, 'id' | 'createdAt' | 'lastLoginAt'>) => {
+    setAdminUsers((current) => [{
+      ...input,
+      id: makeId(),
+      createdAt: new Date().toISOString(),
+      lastLoginAt: undefined,
+    }, ...current]);
+  }, []);
+  const updateAdminUser = useCallback((id: string, input: Partial<Omit<AdminUser, 'id' | 'createdAt'>>) => {
+    setAdminUsers((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }, []);
+  const deleteAdminUser = useCallback((id: string) => {
+    setAdminUsers((current) => current.filter((item) => item.id !== id));
   }, []);
 
   // ─── Notifications ────────────────────────────────────────────────────────
@@ -583,16 +748,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [campaignStats],
   );
 
-  // Merge live ad stats into ADVERTISEMENTS list
-  const advertisements = useMemo(
+  // Merge live ad stats into the mutable advertisements list
+  const advertisementsWithStats = useMemo(
     () =>
-      ADVERTISEMENTS.map((a) => ({
+      advertisements.map((a) => ({
         ...a,
         impressions: adStats[a.id]?.impressions ?? a.impressions,
         clicks: adStats[a.id]?.clicks ?? a.clicks,
         views: adStats[a.id]?.views ?? a.views,
       })),
-    [adStats],
+    [adStats, advertisements],
   );
 
   const myReports = useMemo(
@@ -631,12 +796,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       submitReport,
       getReport,
       // Police hub
-      announcements: ANNOUNCEMENTS,
-      trafficDocs: TRAFFIC_DOCS,
+      announcements,
+      trafficDocs,
       campaigns,
       officialAccounts: OFFICIAL_ACCOUNTS,
-      articles: ARTICLES,
-      newsletters: NEWSLETTERS,
+      articles,
+      newsletters,
       getActiveBanner,
       searchAnnouncements,
       searchTrafficDocs,
@@ -647,24 +812,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
       getArticle,
       getAnnouncement,
       getTrafficDoc,
+      createAnnouncement,
+      updateAnnouncement,
+      deleteAnnouncement,
+      createTrafficDoc,
+      updateTrafficDoc,
+      deleteTrafficDoc,
       // Departments
-      departments: POLICE_DEPARTMENTS,
+      departments,
       getDepartment,
       searchDepartments,
+      createDepartment,
+      updateDepartment,
+      deleteDepartment,
       // Discover
-      discoverPosts: DISCOVER_POSTS,
-      discoverVideos: DISCOVER_VIDEOS,
-      discoverPhotos: DISCOVER_PHOTOS,
+      discoverPosts,
+      discoverVideos,
+      discoverPhotos,
       searchDiscoverPosts,
       searchDiscoverVideos,
       searchDiscoverPhotos,
+      createDiscoverPost,
+      updateDiscoverPost,
+      deleteDiscoverPost,
+      createDiscoverVideo,
+      updateDiscoverVideo,
+      deleteDiscoverVideo,
+      createDiscoverPhoto,
+      updateDiscoverPhoto,
+      deleteDiscoverPhoto,
+      // Articles & newsletters
+      createArticle,
+      updateArticle,
+      deleteArticle,
+      createNewsletter,
+      updateNewsletter,
+      deleteNewsletter,
       // Advertisements & banners
-      advertisements,
-      webBanners: WEB_BANNERS,
+      advertisements: advertisementsWithStats,
+      webBanners,
       getActiveAdvertisements,
       getActiveWebBanners,
       recordAdImpression,
       recordAdClick,
+      createAdvertisement,
+      updateAdvertisement,
+      deleteAdvertisement,
+      createWebBanner,
+      updateWebBanner,
+      deleteWebBanner,
       // Notifications
       notifications,
       unreadCount,
@@ -674,7 +870,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Admin
       adminUser: DEMO_ADMIN,
       isAdmin: true,
-      adminUsers: ADMIN_USERS,
+      adminUsers,
+      createAdminUser,
+      updateAdminUser,
+      deleteAdminUser,
       recentActivity: ADMIN_ACTIVITY,
       can,
       contentEngagement,
@@ -709,16 +908,59 @@ export function AppProvider({ children }: { children: ReactNode }) {
       getArticle,
       getAnnouncement,
       getTrafficDoc,
+      createAnnouncement,
+      updateAnnouncement,
+      deleteAnnouncement,
+      createTrafficDoc,
+      updateTrafficDoc,
+      deleteTrafficDoc,
       getDepartment,
       searchDepartments,
+      createDepartment,
+      updateDepartment,
+      deleteDepartment,
       searchDiscoverPosts,
       searchDiscoverVideos,
       searchDiscoverPhotos,
-      advertisements,
+      createDiscoverPost,
+      updateDiscoverPost,
+      deleteDiscoverPost,
+      createDiscoverVideo,
+      updateDiscoverVideo,
+      deleteDiscoverVideo,
+      createDiscoverPhoto,
+      updateDiscoverPhoto,
+      deleteDiscoverPhoto,
+      createArticle,
+      updateArticle,
+      deleteArticle,
+      createNewsletter,
+      updateNewsletter,
+      deleteNewsletter,
+      advertisementsWithStats,
       getActiveAdvertisements,
       getActiveWebBanners,
       recordAdImpression,
       recordAdClick,
+      createAdvertisement,
+      updateAdvertisement,
+      deleteAdvertisement,
+      createWebBanner,
+      updateWebBanner,
+      deleteWebBanner,
+      announcements,
+      trafficDocs,
+      departments,
+      discoverPosts,
+      discoverVideos,
+      discoverPhotos,
+      articles,
+      newsletters,
+      webBanners,
+      adminUsers,
+      createAdminUser,
+      updateAdminUser,
+      deleteAdminUser,
       notifications,
       unreadCount,
       searchNotifications,

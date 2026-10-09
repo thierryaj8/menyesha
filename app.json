@@ -1,12 +1,17 @@
 {
   "expo": {
-    "name": "MENYESHA",
-    "slug": "menyesha",
+    "name": "MENYESHA Admin Portal",
+    "slug": "menyesha-admin",
     "version": "1.0.0",
     "scheme": "menyesha",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B1424"
+    },
     "experiments": {
       "typedRoutes": true
     },
@@ -26,7 +31,11 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "CAMERA"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA"
+      ]
     },
     "web": {
       "bundler": "metro",

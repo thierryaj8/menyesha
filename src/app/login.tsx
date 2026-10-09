@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -10,7 +10,7 @@ import { LanguagePicker } from '@/components/LanguagePicker';
 import { Screen } from '@/components/Screen';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
-import { HIT_SIZE, sans, serif, shadow, spacing, useTheme, type Colors } from '@/theme';
+import { HIT_SIZE, sans, serif, spacing, useTheme, type Colors } from '@/theme';
 
 export default function LoginScreen() {
   const t = useT();
@@ -62,9 +62,11 @@ export default function LoginScreen() {
       }
     >
       <View style={styles.brand}>
-        <View style={styles.logo}>
-          <Ionicons name="megaphone" size={30} color={colors.white} />
-        </View>
+        <Image
+          source={require('../../assets/android-icon-foreground.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <Text style={styles.wordmark}>{t('common.appName')}</Text>
         <Text style={styles.tagline}>{t('common.tagline')}</Text>
         <LanguagePicker style={styles.language} />
@@ -96,6 +98,13 @@ export default function LoginScreen() {
         textContentType="password"
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Pressable
+        onPress={() => {}}
+        accessibilityRole="link"
+        style={styles.forgotRow}
+      >
+        <Text style={styles.forgotText}>{t('auth.forgotPassword')}</Text>
+      </Pressable>
       <Text style={styles.demo}>{t('auth.demoHint')}</Text>
 
       <Card tone="emergency" style={styles.emergency}>
@@ -129,15 +138,10 @@ export default function LoginScreen() {
 const makeStyles = (colors: Colors) => StyleSheet.create({
   flex: { flex: 1 },
   brand: { alignItems: 'center', gap: 4, marginTop: spacing.lg },
-  logo: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: colors.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logoImage: {
+    width: 72,
+    height: 72,
     marginBottom: spacing.sm,
-    ...shadow.raised,
   },
   wordmark: { ...serif.h1, color: colors.brandForeground, letterSpacing: 4 },
   tagline: { ...sans.small, color: colors.textMuted },
@@ -146,6 +150,8 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
   subtitle: { ...sans.lead, color: colors.textMuted },
   error: { ...sans.small, color: colors.emergencyForeground },
   demo: { ...sans.small, color: colors.textMuted, textAlign: 'center' },
+  forgotRow: { alignSelf: 'flex-end', paddingVertical: spacing.xs },
+  forgotText: { ...sans.label, color: colors.brandForeground, fontSize: 13 },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'center',

@@ -1,17 +1,18 @@
 /**
  * Admin › Advertisements list
  */
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { SearchBar } from '@/components/SearchBar';
 import { FilterChips } from '@/components/FilterChips';
 import { TopBar } from '@/components/TopBar';
+import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
-import type { AdStatus } from '@/types';
+import type { AdStatus, Advertisement } from '@/types';
 
 type StatusFilter = 'all' | AdStatus;
 
@@ -26,11 +27,12 @@ const STATUS_COLORS: Record<AdStatus, string> = {
 
 export default function AdminAdsScreen() {
   const t = useT();
-  const { advertisements } = useApp();
+  const { advertisements, createAdvertisement, updateAdvertisement, deleteAdvertisement } = useApp();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [editor, setEditor] = useState<{ open: boolean; ad?: Advertisement }>({ open: false });
 
   const filtered = advertisements.filter((ad) => {
     const q = query.toLowerCase();
@@ -48,13 +50,49 @@ export default function AdminAdsScreen() {
     { value: 'ended', label: 'Ended' },
   ];
 
+  const fields = (ad?: Advertisement): CrudField[] => [
+    { key: 'campaignName', label: 'Campaign', value: ad?.campaignName ?? '', placeholder: 'Campaign name' },
+    { key: 'title', label: 'Ad title', value: ad?.title ?? '', placeholder: 'Advertisement title' },
+    { key: 'description', label: 'Description', value: ad?.description ?? '', placeholder: 'Ad description', multiline: true },
+    { key: 'targetPage', label: 'Target page', value: ad?.targetPage ?? 'home', placeholder: 'home' },
+    { key: 'status', label: 'Status', value: ad?.status ?? 'draft', placeholder: 'draft' },
+    { key: 'destinationUrl', label: 'Destination URL', value: ad?.destinationUrl ?? '', placeholder: 'https://example.com' },
+  ];
+  const submit = (values: Record<string, string>) => {
+    const input = {
+      campaignName: values.campaignName.trim(),
+      adType: editor.ad?.adType ?? 'image',
+      title: values.title.trim(),
+      description: values.description.trim(),
+      destinationUrl: values.destinationUrl.trim() || undefined,
+      startDate: editor.ad?.startDate ?? new Date().toISOString(),
+      endDate: editor.ad?.endDate ?? new Date(Date.now() + 86400000).toISOString(),
+      targetPage: (values.targetPage.trim() || 'home') as Advertisement['targetPage'],
+      status: (values.status.trim() || 'draft') as Advertisement['status'],
+      departmentId: editor.ad?.departmentId,
+      impressions: editor.ad?.impressions ?? 0,
+      clicks: editor.ad?.clicks ?? 0,
+      views: editor.ad?.views ?? 0,
+      shares: editor.ad?.shares ?? 0,
+      createdBy: editor.ad?.createdBy ?? 'admin-super-01',
+    };
+    if (!input.campaignName || !input.title || !input.description) return;
+    if (editor.ad) updateAdvertisement(editor.ad.id, input);
+    else createAdvertisement(input);
+    setEditor({ open: false });
+  };
+  const remove = (ad: Advertisement) => Alert.alert('Delete advertisement', `Delete “${ad.title}”?`, [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Delete', style: 'destructive', onPress: () => deleteAdvertisement(ad.id) },
+  ]);
+
   return (
     <Screen>
       <TopBar title={t('admin.ads.list')} />
 
       <View style={styles.actionBar}>
         <SearchBar value={query} onChangeText={setQuery} placeholder={t('admin.search')} />
-        <Pressable onPress={() => {}} style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}>
+        <Pressable onPress={() => setEditor({ open: true })} style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}>
           <Ionicons name="add" size={20} color={colors.white} />
           <Text style={styles.createBtnText}>{t('admin.ads.newAd')}</Text>
         </Pressable>
@@ -94,21 +132,26 @@ export default function AdminAdsScreen() {
                 </View>
               </View>
               <View style={styles.actions}>
-                <Pressable onPress={() => {}} style={styles.actionBtn}>
+                <Pressable onPress={() => setEditor({ open: true, ad })} style={styles.actionBtn}>
                   <Ionicons name="create-outline" size={16} color={colors.brand} />
                 </Pressable>
-                <Pressable onPress={() => {}} style={styles.actionBtn}>
-                  <Ionicons
-                    name={ad.status === 'active' ? 'pause-circle-outline' : 'play-circle-outline'}
-                    size={16}
-                    color={colors.textMuted}
-                  />
+                <Pressable onPress={() => remove(ad)} style={[styles.actionBtn, styles.deleteAction]}>
+                  <Ionicons name="trash-outline" size={16} color={colors.emergency} />
                 </Pressable>
               </View>
             </View>
           );
         })}
       </View>
+
+      <AdminCrudModal
+        visible={editor.open}
+        title={editor.ad ? 'Edit advertisement' : 'Create advertisement'}
+        submitLabel={editor.ad ? 'Save changes' : 'Create advertisement'}
+        initialValues={fields(editor.ad)}
+        onClose={() => setEditor({ open: false })}
+        onSubmit={submit}
+      />
     </Screen>
   );
 }
@@ -161,5 +204,6 @@ const makeStyles = (colors: Colors) =>
       width: 32, height: 32, alignItems: 'center', justifyContent: 'center',
       borderRadius: radius.sm, backgroundColor: colors.sage,
     },
+    deleteAction: { backgroundColor: colors.emergencySoft },
     pressed: { opacity: 0.8 },
   });

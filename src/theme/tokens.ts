@@ -1,26 +1,26 @@
 /**
  * MENYESHA design tokens.
- * Brand: deep navy blue + gold on clean white, inspired by Rwanda National Police.
+ * Brand: blue, white, and red for a strong emergency-focused UI.
  * Fraunces (serif) carries numbers and headings; Manrope carries everything else.
  */
 
 import type { CategoryId } from '@/types';
 
 export const lightColors = {
-  // Brand — deep navy + royal blue
-  brand: '#0A1F44',
-  brandForeground: '#0A1F44',
-  brandDark: '#061530',
-  brandDeep: '#040E20',
-  brandSoft: '#E8EDF7',
-  accent: '#1A56DB',
-  accentBright: '#3B82F6',
-  accentSoft: '#DBEAFE',
+  // Brand — deep blue with red emphasis
+  brand: '#0B3C8D',
+  brandForeground: '#0B3C8D',
+  brandDark: '#082C62',
+  brandDeep: '#061F4A',
+  brandSoft: '#EAF1FF',
+  accent: '#D62828',
+  accentBright: '#EF4444',
+  accentSoft: '#FEE2E2',
 
-  // Gold/yellow highlights — RNP style
-  gold: '#D4A017',
-  goldBright: '#F0C040',
-  goldSoft: '#FEF3C7',
+  // Legacy gold is replaced by red accents for the requested palette
+  gold: '#D62828',
+  goldBright: '#EF4444',
+  goldSoft: '#FEE2E2',
 
   // Surfaces
   background: '#F8FAFC',
@@ -36,8 +36,8 @@ export const lightColors = {
   textOnBrand: '#FFFFFF',
 
   // Status
-  success: '#15803D',
-  successSoft: '#DCFCE7',
+  success: '#0F766E',
+  successSoft: '#CCFBF1',
   ochre: '#B45309',
   ochreSoft: '#FEF3C7',
   tealSoft: '#DBEAFE',
@@ -46,13 +46,13 @@ export const lightColors = {
   neutralSoft: '#F1F5F9',
 
   // Emergency
-  emergency: '#B91C1C',
-  emergencyForeground: '#B91C1C',
+  emergency: '#C62828',
+  emergencyForeground: '#C62828',
   emergencySoft: '#FEE2E2',
 
   white: '#FFFFFF',
   black: '#000000',
-  overlay: 'rgba(10, 31, 68, 0.45)',
+  overlay: 'rgba(11, 60, 141, 0.55)',
 
   // Category colors
   category: {
@@ -66,64 +66,64 @@ export const lightColors = {
 };
 
 export const darkColors: typeof lightColors = {
-  brand: '#0A1F44',
-  brandForeground: '#93C5FD',
-  brandDark: '#061530',
-  brandDeep: '#040E20',
-  brandSoft: '#1E293B',
-  accent: '#3B82F6',
-  accentBright: '#60A5FA',
-  accentSoft: '#1E3A5F',
+  brand: '#4F9CF9',
+  brandForeground: '#D9EBFF',
+  brandDark: '#2D6FCE',
+  brandDeep: '#0B1424',
+  brandSoft: '#16314F',
+  accent: '#F45B63',
+  accentBright: '#FF7A7F',
+  accentSoft: '#3B1C22',
 
-  gold: '#F0C040',
-  goldBright: '#FCD34D',
-  goldSoft: '#3A2E0A',
+  gold: '#F2B84B',
+  goldBright: '#F7D27A',
+  goldSoft: '#322613',
 
-  background: '#0F172A',
-  surface: '#1E293B',
-  sage: '#334155',
-  border: '#334155',
-  borderStrong: '#475569',
+  background: '#0B1424',
+  surface: '#162338',
+  sage: '#1B2A40',
+  border: 'rgba(255,255,255,0.08)',
+  borderStrong: 'rgba(255,255,255,0.14)',
 
-  text: '#F1F5F9',
+  text: '#F8FAFC',
   textMuted: '#94A3B8',
   textFaint: '#64748B',
   textOnBrand: '#FFFFFF',
 
-  success: '#4ADE80',
-  successSoft: '#14532D',
-  ochre: '#FBBF24',
-  ochreSoft: '#3A2E0A',
-  tealSoft: '#1E3A5F',
+  success: '#35C98A',
+  successSoft: '#123F34',
+  ochre: '#F2B84B',
+  ochreSoft: '#342B12',
+  tealSoft: '#16314F',
   neutral: '#94A3B833',
   neutralText: '#94A3B8',
-  neutralSoft: '#334155',
+  neutralSoft: '#1B2A40',
 
-  emergency: '#DC2626',
-  emergencyForeground: '#FCA5A5',
-  emergencySoft: '#3A1A1A',
+  emergency: '#F45B63',
+  emergencyForeground: '#FFD4D6',
+  emergencySoft: '#3B1C22',
 
   white: '#FFFFFF',
   black: '#000000',
-  overlay: 'rgba(4, 14, 32, 0.62)',
+  overlay: 'rgba(4, 14, 32, 0.74)',
 
   category: {
-    crime: { fg: '#FCA5A5', bg: '#3A1A1A' },
-    suspicious: { fg: '#FCD34D', bg: '#3A2E0A' },
-    vandalism: { fg: '#C4B5FD', bg: '#2E1A4A' },
-    public_property: { fg: '#93C5FD', bg: '#1E293B' },
-    traffic: { fg: '#60A5FA', bg: '#1E3A5F' },
-    other: { fg: '#94A3B8', bg: '#334155' },
+    crime: { fg: '#FF8A8F', bg: '#3B1C22' },
+    suspicious: { fg: '#F2B84B', bg: '#342B12' },
+    vandalism: { fg: '#A5B4FC', bg: '#1F254A' },
+    public_property: { fg: '#93C5FD', bg: '#162338' },
+    traffic: { fg: '#4F9CF9', bg: '#16314F' },
+    other: { fg: '#94A3B8', bg: '#1B2A40' },
   },
 };
 
 export type Colors = typeof lightColors;
 
 export const gradients = {
-  hero: ['#0A1F44', '#1A56DB'] as const,
-  emergency: ['#DC2626', '#991B1B'] as const,
-  success: ['#16A34A', '#15803D'] as const,
-  accent: ['#F0C040', '#D4A017'] as const,
+  hero: ['#0B3C8D', '#D62828'] as const,
+  emergency: ['#D62828', '#7F1D1D'] as const,
+  success: ['#0F766E', '#115E59'] as const,
+  accent: ['#D62828', '#B91C1C'] as const,
 } as const;
 
 export const spacing = {

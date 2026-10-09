@@ -15,9 +15,9 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { DesktopNav, DESKTOP_BREAKPOINT } from '@/components/DesktopNav';
+import { BrandedSplash } from '@/components/BrandedSplash';
 import { EmergencyProvider } from '@/components/EmergencySheet';
 import { TopLanguageBar } from '@/components/TopLanguageBar';
 import { I18nProvider } from '@/i18n';
@@ -71,10 +71,8 @@ export default function RootLayout() {
 function AuthGate() {
   const { phase } = useApp();
   const { colors, isDark } = useTheme();
-  const { width } = useWindowDimensions();
 
   const signedIn = phase === 'signedIn';
-  const isWide = width >= DESKTOP_BREAKPOINT;
 
   return (
     <>
@@ -82,7 +80,6 @@ function AuthGate() {
 
       <View style={styles.flex}>
         {/* Wide screens get a persistent nav bar; it carries its own language control. */}
-        {signedIn && <DesktopNav />}
 
         <View style={styles.flex}>
           <Stack
@@ -109,8 +106,11 @@ function AuthGate() {
         </View>
       </View>
 
-      {/* One globe button for the whole app — top-right, every screen. */}
-      {!(isWide && signedIn) && <TopLanguageBar />}
+      {/* Globe switcher on auth screens and wide layouts; the profile tab carries it once signed in on mobile. */}
+      {phase !== 'signedIn' && <TopLanguageBar />}
+
+      {/* Branded intro plays once on startup, then unmounts itself. */}
+      <BrandedSplash />
     </>
   );
 }

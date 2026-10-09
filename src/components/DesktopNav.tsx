@@ -96,9 +96,12 @@ function DesktopNavBar() {
           style={styles.brand}
         >
           <View style={styles.brandMark}>
-            <Ionicons name="shield-checkmark" size={18} color={colors.gold} />
+            <Ionicons name="shield-checkmark" size={17} color={colors.white} />
           </View>
-          <Text style={styles.brandText}>{t('common.appName')}</Text>
+          <View style={styles.brandTextWrap}>
+            <Text style={styles.brandText}>{t('common.appName')}</Text>
+            <Text style={styles.brandSub}>Civic Safety</Text>
+          </View>
         </Pressable>
 
         <ScrollView
@@ -234,7 +237,7 @@ const makeStyles = (colors: Colors) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
-      backgroundColor: colors.surface,
+      backgroundColor: 'rgba(22, 35, 56, 0.92)',
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       paddingHorizontal: spacing.gutter,
@@ -242,20 +245,30 @@ const makeStyles = (colors: Colors) =>
       zIndex: 20,
       ...shadow.card,
     },
-    brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+    brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     brandMark: {
-      width: 32,
-      height: 32,
+      width: 34,
+      height: 34,
       borderRadius: radius.md,
       backgroundColor: colors.brand,
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.12)',
     },
+    brandTextWrap: { alignItems: 'flex-start' },
     brandText: {
-      fontFamily: fonts.serifBold,
-      fontSize: 18,
-      letterSpacing: 1,
-      color: colors.brand,
+      fontFamily: fonts.sansExtraBold,
+      fontSize: 16,
+      letterSpacing: 0.8,
+      color: colors.text,
+    },
+    brandSub: {
+      fontFamily: fonts.sans,
+      fontSize: 10,
+      letterSpacing: 1.2,
+      color: colors.textMuted,
+      textTransform: 'uppercase',
     },
     links: { flexDirection: 'row', alignItems: 'center', gap: 2, flex: 1 },
     link: {
@@ -265,13 +278,18 @@ const makeStyles = (colors: Colors) =>
       height: 40,
       paddingHorizontal: spacing.md,
       borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: 'transparent',
     },
-    linkActive: { backgroundColor: colors.brandSoft },
+    linkActive: {
+      backgroundColor: colors.brandSoft,
+      borderColor: 'rgba(79, 156, 249, 0.22)',
+    },
     linkPressed: { backgroundColor: colors.sage },
-    linkAdmin: { backgroundColor: colors.goldSoft },
+    linkAdmin: { backgroundColor: colors.emergencySoft },
     linkText: { ...sans.tiny, color: colors.textMuted },
     linkTextActive: { color: colors.brandForeground },
-    linkAdminText: { color: colors.ochre },
+    linkAdminText: { color: colors.emergencyForeground },
     badge: {
       minWidth: 18,
       height: 18,
