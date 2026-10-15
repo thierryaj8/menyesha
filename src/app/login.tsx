@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import type { Href } from 'expo-router';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { useEmergency } from '@/components/EmergencySheet';
@@ -19,8 +20,8 @@ export default function LoginScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
-  const [phone, setPhone] = useState('+250788123456');
-  const [password, setPassword] = useState('demo1234');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -83,6 +84,8 @@ export default function LoginScreen() {
         onChangeText={setPhone}
         placeholder={t('auth.phonePlaceholder')}
         error={phoneError}
+        hint={t('auth.phoneCountry')}
+        prefix="+250"
         keyboardType="phone-pad"
         autoComplete="tel"
         textContentType="telephoneNumber"
@@ -105,8 +108,9 @@ export default function LoginScreen() {
       >
         <Text style={styles.forgotText}>{t('auth.forgotPassword')}</Text>
       </Pressable>
-      <Text style={styles.demo}>{t('auth.demoHint')}</Text>
-
+      <Pressable onPress={() => router.push('/staff-login' as Href)} style={styles.forgotRow}>
+        <Text style={styles.forgotText}>Staff sign in</Text>
+      </Pressable>
       <Card tone="emergency" style={styles.emergency}>
         <View style={styles.emergencyHead}>
           <Ionicons name="warning" size={22} color={colors.emergencyForeground} />
@@ -149,7 +153,6 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
   title: { ...serif.h1, color: colors.text },
   subtitle: { ...sans.lead, color: colors.textMuted },
   error: { ...sans.small, color: colors.emergencyForeground },
-  demo: { ...sans.small, color: colors.textMuted, textAlign: 'center' },
   forgotRow: { alignSelf: 'flex-end', paddingVertical: spacing.xs },
   forgotText: { ...sans.label, color: colors.brandForeground, fontSize: 13 },
   switchRow: {

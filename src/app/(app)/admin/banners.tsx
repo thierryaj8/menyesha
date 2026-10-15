@@ -10,6 +10,7 @@ import { TopBar } from '@/components/TopBar';
 import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
+import { runCmsMutation } from '@/utils/cms';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
 import type { BannerLocation, BannerStatus, WebBanner } from '@/types';
@@ -62,6 +63,7 @@ export default function AdminBannersScreen() {
 
   const fields = (banner?: WebBanner): CrudField[] => [
     { key: 'title', label: 'Title', value: banner?.title ?? '', placeholder: 'Banner title' },
+    { key: 'imageUri', label: 'Image URL', value: banner?.imageUri ?? '', placeholder: 'https://example.com/banner.jpg', optional: true },
     { key: 'bannerText', label: 'Banner text', value: banner?.bannerText ?? '', placeholder: 'Short promotional message' },
     { key: 'location', label: 'Location', value: banner?.location ?? 'home', placeholder: 'home' },
     { key: 'status', label: 'Status', value: banner?.status ?? 'draft', placeholder: 'draft' },
@@ -71,6 +73,7 @@ export default function AdminBannersScreen() {
   const submit = (values: Record<string, string>) => {
     const input = {
       title: values.title.trim(),
+      imageUri: values.imageUri.trim() || undefined,
       bannerText: values.bannerText.trim() || undefined,
       ctaLabel: values.ctaLabel.trim() || undefined,
       ctaUrl: values.ctaUrl.trim() || undefined,
@@ -78,16 +81,20 @@ export default function AdminBannersScreen() {
       startDate: editor.banner?.startDate ?? new Date().toISOString(),
       endDate: editor.banner?.endDate ?? new Date(Date.now() + 86400000 * 30).toISOString(),
       status: (values.status.trim() || 'draft') as WebBanner['status'],
-      createdBy: editor.banner?.createdBy ?? 'admin-super-01',
+      createdBy: editor.banner?.createdBy ?? '',
     };
     if (!input.title) return;
-    if (editor.banner) updateWebBanner(editor.banner.id, input);
-    else createWebBanner(input);
-    setEditor({ open: false });
+    void runCmsMutation(editor.banner ? 'Save banner' : 'Create banner', async () => {
+      if (editor.banner) await updateWebBanner(editor.banner.id, input);
+      else await createWebBanner(input);
+      setEditor({ open: false });
+    });
   };
   const remove = (banner: WebBanner) => Alert.alert('Delete banner', `Delete “${banner.title}”?`, [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => deleteWebBanner(banner.id) },
+    { text: 'Delete', style: 'destructive', onPress: () => {
+      void runCmsMutation('Delete banner', () => deleteWebBanner(banner.id));
+    } },
   ]);
 
   return (

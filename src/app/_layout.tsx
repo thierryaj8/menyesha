@@ -63,16 +63,15 @@ export default function RootLayout() {
 }
 
 /**
- * Exactly one route group is available at a time:
- * signed out -> login / sign up, waiting for the SMS code -> verify, signed in -> the app.
- * Expo Router sends the user to the first available screen, so "/" always
- * lands somewhere sensible.
+ * Citizen auth routes follow the SMS sign-in phase; staff sign-in remains
+ * available independently until a staff account is authenticated.
  */
 function AuthGate() {
-  const { phase } = useApp();
+  const { phase, staffAccount, staffReady } = useApp();
   const { colors, isDark } = useTheme();
 
   const signedIn = phase === 'signedIn';
+  const appAvailable = signedIn || (staffReady && staffAccount !== null);
 
   return (
     <>
@@ -93,11 +92,15 @@ function AuthGate() {
               <Stack.Screen name="signup" />
             </Stack.Protected>
 
+            <Stack.Protected guard={!staffAccount}>
+              <Stack.Screen name="staff-login" />
+            </Stack.Protected>
+
             <Stack.Protected guard={phase === 'needsVerify'}>
               <Stack.Screen name="verify" />
             </Stack.Protected>
 
-            <Stack.Protected guard={signedIn}>
+            <Stack.Protected guard={appAvailable}>
               <Stack.Screen name="(app)" />
             </Stack.Protected>
 
@@ -107,7 +110,7 @@ function AuthGate() {
       </View>
 
       {/* Globe switcher on auth screens and wide layouts; the profile tab carries it once signed in on mobile. */}
-      {phase !== 'signedIn' && <TopLanguageBar />}
+      {phase !== 'signedIn' && !(staffReady && staffAccount) && <TopLanguageBar />}
 
       {/* Branded intro plays once on startup, then unmounts itself. */}
       <BrandedSplash />

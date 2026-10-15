@@ -10,6 +10,7 @@ import { TopBar } from '@/components/TopBar';
 import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
+import { runCmsMutation } from '@/utils/cms';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
 import type { AdStatus, Advertisement } from '@/types';
@@ -74,16 +75,20 @@ export default function AdminAdsScreen() {
       clicks: editor.ad?.clicks ?? 0,
       views: editor.ad?.views ?? 0,
       shares: editor.ad?.shares ?? 0,
-      createdBy: editor.ad?.createdBy ?? 'admin-super-01',
+      createdBy: editor.ad?.createdBy ?? '',
     };
     if (!input.campaignName || !input.title || !input.description) return;
-    if (editor.ad) updateAdvertisement(editor.ad.id, input);
-    else createAdvertisement(input);
-    setEditor({ open: false });
+    void runCmsMutation(editor.ad ? 'Save advertisement' : 'Create advertisement', async () => {
+      if (editor.ad) await updateAdvertisement(editor.ad.id, input);
+      else await createAdvertisement(input);
+      setEditor({ open: false });
+    });
   };
   const remove = (ad: Advertisement) => Alert.alert('Delete advertisement', `Delete “${ad.title}”?`, [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => deleteAdvertisement(ad.id) },
+    { text: 'Delete', style: 'destructive', onPress: () => {
+      void runCmsMutation('Delete advertisement', () => deleteAdvertisement(ad.id));
+    } },
   ]);
 
   return (

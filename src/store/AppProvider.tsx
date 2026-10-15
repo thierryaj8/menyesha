@@ -7,21 +7,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { SEED_POINTS, SEED_REPORTS, SEED_WEEKLY } from '@/data/mock';
 import { KIGALI_CENTER } from '@/data/kigali';
-import { ANNOUNCEMENTS } from '@/data/announcements';
-import { ARTICLES } from '@/data/articles';
-import { CAMPAIGNS, getActiveBannerCampaign } from '@/data/campaigns';
-import { NEWSLETTERS } from '@/data/newsletters';
 import { OFFICIAL_ACCOUNTS } from '@/data/officialAccounts';
-import { TRAFFIC_DOCS } from '@/data/trafficDocs';
-import { POLICE_DEPARTMENTS } from '@/data/policeDepartments';
-import { ADVERTISEMENTS } from '@/data/advertisements';
-import { WEB_BANNERS } from '@/data/webBanners';
-import { DISCOVER_POSTS, DISCOVER_VIDEOS, DISCOVER_PHOTOS } from '@/data/discoverContent';
-import { ADMIN_USERS, DEMO_ADMIN } from '@/data/adminUsers';
-import { NOTIFICATIONS } from '@/data/notifications';
-import { ADMIN_ACTIVITY } from '@/data/activity';
 import type {
   AdminActivity,
   AdminPermission,
@@ -46,13 +33,15 @@ import type {
   Report,
   ReportDraft,
   ReportStatus,
+  StaffAccount,
   TrafficDocCategory,
   TrafficDocument,
   User,
   WebBanner,
 } from '@/types';
-import { api, getAuthToken, setAuthToken } from '@/utils/api';
+import { api, getAuthToken, getStaffToken, setAuthToken, setStaffToken } from '@/utils/api';
 import { isSameDay, makeId } from '@/utils/format';
+import { isValidRwandaPhone, normalizeRwandaPhone } from '@/utils/phone';
 import { findNearbyDuplicate, isRateLimited } from './rules';
 
 export interface SubmitResult {
@@ -86,6 +75,10 @@ interface AppValue {
   }) => Promise<{ ok: boolean; errorKey?: string }>;
   verify: (code: string) => Promise<{ ok: boolean; errorKey?: string }>;
   logout: () => void;
+  staffAccount: StaffAccount | null;
+  staffReady: boolean;
+  staffLogin: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  staffLogout: () => Promise<void>;
 
   submitReport: (data?: {
     categoryId: string;
@@ -109,26 +102,26 @@ interface AppValue {
   searchAnnouncements: (query: string, type?: AnnouncementType) => PoliceAnnouncement[];
   searchTrafficDocs: (query: string, category?: TrafficDocCategory) => TrafficDocument[];
   searchArticles: (query: string, category?: MediaCategory) => MediaArticle[];
-  recordCampaignView: (id: string) => void;
-  recordCampaignClick: (id: string) => void;
+  recordCampaignView: (id: string) => Promise<void>;
+  recordCampaignClick: (id: string) => Promise<void>;
   getNewsletter: (id: string) => Newsletter | undefined;
   getArticle: (id: string) => MediaArticle | undefined;
   getAnnouncement: (id: string) => PoliceAnnouncement | undefined;
   getTrafficDoc: (id: string) => TrafficDocument | undefined;
-  createAnnouncement: (input: Omit<PoliceAnnouncement, 'id'>) => void;
-  updateAnnouncement: (id: string, input: Partial<Omit<PoliceAnnouncement, 'id'>>) => void;
-  deleteAnnouncement: (id: string) => void;
-  createTrafficDoc: (input: Omit<TrafficDocument, 'id'>) => void;
-  updateTrafficDoc: (id: string, input: Partial<Omit<TrafficDocument, 'id'>>) => void;
-  deleteTrafficDoc: (id: string) => void;
+  createAnnouncement: (input: Omit<PoliceAnnouncement, 'id'>) => Promise<void>;
+  updateAnnouncement: (id: string, input: Partial<Omit<PoliceAnnouncement, 'id'>>) => Promise<void>;
+  deleteAnnouncement: (id: string) => Promise<void>;
+  createTrafficDoc: (input: Omit<TrafficDocument, 'id'>) => Promise<void>;
+  updateTrafficDoc: (id: string, input: Partial<Omit<TrafficDocument, 'id'>>) => Promise<void>;
+  deleteTrafficDoc: (id: string) => Promise<void>;
 
   // ─── Departments ─────────────────────────────────────────────────────
   departments: PoliceDepartment[];
   getDepartment: (id: string) => PoliceDepartment | undefined;
   searchDepartments: (query: string) => PoliceDepartment[];
-  createDepartment: (input: Omit<PoliceDepartment, 'id' | 'createdAt'>) => void;
-  updateDepartment: (id: string, input: Partial<Omit<PoliceDepartment, 'id' | 'createdAt'>>) => void;
-  deleteDepartment: (id: string) => void;
+  createDepartment: (input: Omit<PoliceDepartment, 'id' | 'createdAt'> & { password?: string }) => Promise<void>;
+  updateDepartment: (id: string, input: Partial<Omit<PoliceDepartment, 'id' | 'createdAt'>> & { password?: string }) => Promise<void>;
+  deleteDepartment: (id: string) => Promise<void>;
 
   // ─── Discover content ────────────────────────────────────────────────
   discoverPosts: DiscoverPost[];
@@ -137,37 +130,40 @@ interface AppValue {
   searchDiscoverPosts: (query: string) => DiscoverPost[];
   searchDiscoverVideos: (query: string) => DiscoverVideo[];
   searchDiscoverPhotos: (query: string) => DiscoverPhoto[];
-  createDiscoverPost: (input: Omit<DiscoverPost, 'id'>) => void;
-  updateDiscoverPost: (id: string, input: Partial<Omit<DiscoverPost, 'id'>>) => void;
-  deleteDiscoverPost: (id: string) => void;
-  createDiscoverVideo: (input: Omit<DiscoverVideo, 'id'>) => void;
-  updateDiscoverVideo: (id: string, input: Partial<Omit<DiscoverVideo, 'id'>>) => void;
-  deleteDiscoverVideo: (id: string) => void;
-  createDiscoverPhoto: (input: Omit<DiscoverPhoto, 'id'>) => void;
-  updateDiscoverPhoto: (id: string, input: Partial<Omit<DiscoverPhoto, 'id'>>) => void;
-  deleteDiscoverPhoto: (id: string) => void;
+  createDiscoverPost: (input: Omit<DiscoverPost, 'id'>) => Promise<void>;
+  updateDiscoverPost: (id: string, input: Partial<Omit<DiscoverPost, 'id'>>) => Promise<void>;
+  deleteDiscoverPost: (id: string) => Promise<void>;
+  createDiscoverVideo: (input: Omit<DiscoverVideo, 'id'>) => Promise<void>;
+  updateDiscoverVideo: (id: string, input: Partial<Omit<DiscoverVideo, 'id'>>) => Promise<void>;
+  deleteDiscoverVideo: (id: string) => Promise<void>;
+  createDiscoverPhoto: (input: Omit<DiscoverPhoto, 'id'>) => Promise<void>;
+  updateDiscoverPhoto: (id: string, input: Partial<Omit<DiscoverPhoto, 'id'>>) => Promise<void>;
+  deleteDiscoverPhoto: (id: string) => Promise<void>;
 
   // ─── Articles & newsletters ─────────────────────────────────────────
-  createArticle: (input: Omit<MediaArticle, 'id'>) => void;
-  updateArticle: (id: string, input: Partial<Omit<MediaArticle, 'id'>>) => void;
-  deleteArticle: (id: string) => void;
-  createNewsletter: (input: Omit<Newsletter, 'id'>) => void;
-  updateNewsletter: (id: string, input: Partial<Omit<Newsletter, 'id'>>) => void;
-  deleteNewsletter: (id: string) => void;
+  createArticle: (input: Omit<MediaArticle, 'id'>) => Promise<void>;
+  updateArticle: (id: string, input: Partial<Omit<MediaArticle, 'id'>>) => Promise<void>;
+  deleteArticle: (id: string) => Promise<void>;
+  createNewsletter: (input: Omit<Newsletter, 'id'>) => Promise<void>;
+  updateNewsletter: (id: string, input: Partial<Omit<Newsletter, 'id'>>) => Promise<void>;
+  deleteNewsletter: (id: string) => Promise<void>;
 
   // ─── Advertisements & Banners ────────────────────────────────────────
   advertisements: Advertisement[];
   webBanners: WebBanner[];
   getActiveAdvertisements: (targetPage?: Advertisement['targetPage']) => Advertisement[];
   getActiveWebBanners: (location?: WebBanner['location']) => WebBanner[];
-  recordAdImpression: (id: string) => void;
-  recordAdClick: (id: string) => void;
-  createAdvertisement: (input: Omit<Advertisement, 'id' | 'createdAt'>) => void;
-  updateAdvertisement: (id: string, input: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => void;
-  deleteAdvertisement: (id: string) => void;
-  createWebBanner: (input: Omit<WebBanner, 'id' | 'createdAt'>) => void;
-  updateWebBanner: (id: string, input: Partial<Omit<WebBanner, 'id' | 'createdAt'>>) => void;
-  deleteWebBanner: (id: string) => void;
+  recordAdImpression: (id: string) => Promise<void>;
+  recordAdClick: (id: string) => Promise<void>;
+  createAdvertisement: (input: Omit<Advertisement, 'id' | 'createdAt'>) => Promise<void>;
+  updateAdvertisement: (id: string, input: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteAdvertisement: (id: string) => Promise<void>;
+  createWebBanner: (input: Omit<WebBanner, 'id' | 'createdAt'>) => Promise<void>;
+  updateWebBanner: (id: string, input: Partial<Omit<WebBanner, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteWebBanner: (id: string) => Promise<void>;
+  createCampaign: (input: Omit<Campaign, 'id' | 'views' | 'clicks'>) => Promise<void>;
+  updateCampaign: (id: string, input: Partial<Omit<Campaign, 'id'>>) => Promise<void>;
+  deleteCampaign: (id: string) => Promise<void>;
 
   // ─── Notifications ───────────────────────────────────────────────────
   notifications: AppNotification[];
@@ -180,14 +176,17 @@ interface AppValue {
   adminUser: AdminUser | null;
   isAdmin: boolean;
   adminUsers: AdminUser[];
-  createAdminUser: (input: Omit<AdminUser, 'id' | 'createdAt' | 'lastLoginAt'>) => void;
-  updateAdminUser: (id: string, input: Partial<Omit<AdminUser, 'id' | 'createdAt'>>) => void;
-  deleteAdminUser: (id: string) => void;
+  createAdminUser: (input: Omit<AdminUser, 'id' | 'createdAt' | 'lastLoginAt'> & { password: string }) => Promise<void>;
+  updateAdminUser: (id: string, input: Partial<Omit<AdminUser, 'id' | 'createdAt'>> & { password?: string }) => Promise<void>;
+  deleteAdminUser: (id: string) => Promise<void>;
   recentActivity: AdminActivity[];
   /** Role-based gate — Super Admin always passes. */
   can: (permission: AdminPermission) => boolean;
   /** Sum of views + downloads across every managed content type. */
   contentEngagement: { views: number; downloads: number };
+  cmsReady: boolean;
+  cmsError: string | null;
+  refreshCms: () => Promise<void>;
 }
 
 const emptyDraft: ReportDraft = {
@@ -202,60 +201,36 @@ const emptyDraft: ReportDraft = {
 
 const AppContext = createContext<AppValue | null>(null);
 
-function normalizePhone(raw: string): string {
-  const digits = raw.replace(/[^\d+]/g, '');
-  if (digits.startsWith('+250')) return `+250${digits.slice(4).replace(/\D/g, '')}`;
-  if (digits.startsWith('250')) return `+250${digits.slice(3)}`;
-  if (digits.startsWith('0')) return `+250${digits.slice(1)}`;
-  return `+250${digits}`;
-}
-
-function isValidPhone(raw: string): boolean {
-  return /^\+250\d{9}$/.test(normalizePhone(raw));
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<AuthPhase>('signedOut');
   const [user, setUser] = useState<User | null>(null);
   const [pending, setPending] = useState<{ username: string; phone: string } | null>(null);
 
-  const [reports, setReports] = useState<Report[]>(SEED_REPORTS);
-  const [points, setPoints] = useState<PointEntry[]>(SEED_POINTS);
-  const [weekly, setWeekly] = useState(SEED_WEEKLY);
-  const [notifications, setNotifications] = useState<AppNotification[]>(NOTIFICATIONS);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [points, setPoints] = useState<PointEntry[]>([]);
+  const [weekly, setWeekly] = useState({ filed: 0, resolved: 0 });
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [sentToday, setSentToday] = useState<string[]>([]);
   const [draft, setDraft] = useState<ReportDraft>(emptyDraft);
 
-  const [announcements, setAnnouncements] = useState<PoliceAnnouncement[]>(ANNOUNCEMENTS);
-  const [trafficDocs, setTrafficDocs] = useState<TrafficDocument[]>(TRAFFIC_DOCS);
-  const [articles, setArticles] = useState<MediaArticle[]>(ARTICLES);
-  const [newsletters, setNewsletters] = useState<Newsletter[]>(NEWSLETTERS);
-  const [departments, setDepartments] = useState<PoliceDepartment[]>(POLICE_DEPARTMENTS);
-  const [discoverPosts, setDiscoverPosts] = useState<DiscoverPost[]>(DISCOVER_POSTS);
-  const [discoverVideos, setDiscoverVideos] = useState<DiscoverVideo[]>(DISCOVER_VIDEOS);
-  const [discoverPhotos, setDiscoverPhotos] = useState<DiscoverPhoto[]>(DISCOVER_PHOTOS);
-  const [advertisements, setAdvertisements] = useState<Advertisement[]>(ADVERTISEMENTS);
-  const [webBanners, setWebBanners] = useState<WebBanner[]>(WEB_BANNERS);
-  const [adminUsers, setAdminUsers] = useState<AdminUser[]>(ADMIN_USERS);
-
-  // Police hub state
-  const [campaignStats, setCampaignStats] = useState<
-    Record<string, { views: number; clicks: number }>
-  >(() =>
-    Object.fromEntries(CAMPAIGNS.map((c) => [c.id, { views: c.views, clicks: c.clicks }])),
-  );
-
-  // Advertisement stats
-  const [adStats, setAdStats] = useState<
-    Record<string, { impressions: number; clicks: number; views: number }>
-  >(() =>
-    Object.fromEntries(
-      ADVERTISEMENTS.map((a) => [
-        a.id,
-        { impressions: a.impressions, clicks: a.clicks, views: a.views },
-      ]),
-    ),
-  );
+  const [announcements, setAnnouncements] = useState<PoliceAnnouncement[]>([]);
+  const [trafficDocs, setTrafficDocs] = useState<TrafficDocument[]>([]);
+  const [articles, setArticles] = useState<MediaArticle[]>([]);
+  const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
+  const [departments, setDepartments] = useState<PoliceDepartment[]>([]);
+  const [discoverPosts, setDiscoverPosts] = useState<DiscoverPost[]>([]);
+  const [discoverVideos, setDiscoverVideos] = useState<DiscoverVideo[]>([]);
+  const [discoverPhotos, setDiscoverPhotos] = useState<DiscoverPhoto[]>([]);
+  const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
+  const [webBanners, setWebBanners] = useState<WebBanner[]>([]);
+  const [campaignRecords, setCampaignRecords] = useState<Campaign[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [staffAccount, setStaffAccount] = useState<StaffAccount | null>(null);
+  const [staffReady, setStaffReady] = useState(false);
+  const [cmsReady, setCmsReady] = useState(false);
+  const [cmsError, setCmsError] = useState<string | null>(null);
+  const [recentActivity, setRecentActivity] = useState<AdminActivity[]>([]);
+  const [contentEngagement, setContentEngagement] = useState({ views: 0, downloads: 0 });
 
   const updateDraft = useCallback(
     (patch: Partial<ReportDraft>) => setDraft((current) => ({ ...current, ...patch })),
@@ -263,6 +238,148 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const resetDraft = useCallback(() => setDraft(emptyDraft), []);
+
+  const syncPublicCmsData = useCallback(async () => {
+    const remote = await api.getCmsPublic();
+    if (await getStaffToken()) return;
+    setAnnouncements(remote.announcements);
+    setTrafficDocs(remote.trafficDocs);
+    setArticles(remote.articles);
+    setNewsletters(remote.newsletters);
+    setDepartments(remote.departments);
+    setDiscoverPosts(remote.discoverPosts);
+    setDiscoverVideos(remote.discoverVideos);
+    setDiscoverPhotos(remote.discoverPhotos);
+    setAdvertisements(remote.advertisements);
+    setWebBanners(remote.webBanners);
+    setCampaignRecords(remote.campaigns);
+  }, []);
+
+  const syncAdminCmsData = useCallback(async (token: string, account: StaffAccount) => {
+    setCmsReady(false);
+    setCmsError(null);
+    setAnnouncements([]);
+    setTrafficDocs([]);
+    setArticles([]);
+    setNewsletters([]);
+    setDepartments([]);
+    setDiscoverPosts([]);
+    setDiscoverVideos([]);
+    setDiscoverPhotos([]);
+    setAdvertisements([]);
+    setWebBanners([]);
+    setCampaignRecords([]);
+    setAdminUsers([]);
+    setRecentActivity([]);
+    setContentEngagement({ views: 0, downloads: 0 });
+    const permissions = account.permissions;
+    const canManage = (permission: AdminPermission) => permissions.includes(permission);
+    const tasks: Promise<void>[] = [];
+
+    const loadRecords = <T,>(resource: string, permission: AdminPermission, apply: (rows: T[]) => void) => {
+      if (!canManage(permission)) return;
+      tasks.push(api.getCmsRecords<T>(resource, token).then(({ records }) => apply(records)));
+    };
+
+    loadRecords('announcement', 'manage_announcements', setAnnouncements);
+    loadRecords('traffic_doc', 'manage_traffic_docs', setTrafficDocs);
+    loadRecords('article', 'manage_news', setArticles);
+    loadRecords('newsletter', 'manage_newsletters', setNewsletters);
+    loadRecords('discover_post', 'manage_posts', setDiscoverPosts);
+    loadRecords('discover_video', 'manage_videos', setDiscoverVideos);
+    loadRecords('discover_photo', 'manage_photos', setDiscoverPhotos);
+    loadRecords('advertisement', 'manage_ads', setAdvertisements);
+    loadRecords('web_banner', 'manage_banners', setWebBanners);
+    loadRecords('campaign', 'manage_ads', setCampaignRecords);
+
+    if (canManage('manage_departments')) {
+      tasks.push(api.getCmsDepartments(token).then(({ departments: rows }) => setDepartments(rows)));
+    }
+    if (canManage('manage_accounts')) {
+      tasks.push(api.getCmsAccounts(token).then(({ accounts }) => setAdminUsers(accounts)));
+    }
+    const dashboardTask = canManage('view_analytics')
+      ? api.getCmsDashboard(token).then(({ activity, engagement }) => {
+          setRecentActivity(activity);
+          setContentEngagement(engagement);
+        })
+      : Promise.resolve();
+
+    try {
+      await Promise.all([...tasks, dashboardTask]);
+      setCmsReady(true);
+    } catch (error) {
+      setCmsError(error instanceof Error ? error.message : 'Unable to load CMS data');
+      setCmsReady(true);
+      throw error;
+    }
+  }, []);
+
+  const refreshCms = useCallback(async () => {
+    const token = await getStaffToken();
+    if (!token || !staffAccount) throw new Error('Sign in as staff to load CMS data');
+    await syncAdminCmsData(token, staffAccount);
+  }, [staffAccount, syncAdminCmsData]);
+
+  const staffLogin = useCallback(async (username: string, password: string) => {
+    if (!username.trim() || !password) return { ok: false, error: 'Enter your staff username and password' };
+    try {
+      const { account, accessToken } = await api.staffLogin({ username: username.trim(), password });
+      await setStaffToken(accessToken);
+      setStaffAccount(account);
+      await syncAdminCmsData(accessToken, account);
+      return { ok: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Staff sign-in failed';
+      setStaffAccount(null);
+      await setStaffToken(null);
+      return { ok: false, error: message };
+    }
+  }, [syncAdminCmsData]);
+
+  const staffLogout = useCallback(async () => {
+    await setStaffToken(null);
+    setStaffAccount(null);
+    setAdminUsers([]);
+    setRecentActivity([]);
+    setContentEngagement({ views: 0, downloads: 0 });
+    setCmsReady(false);
+    setCmsError(null);
+    try {
+      await syncPublicCmsData();
+    } catch (error) {
+      setCmsError(error instanceof Error ? error.message : 'Unable to load public CMS data');
+    }
+  }, [syncPublicCmsData]);
+
+  useEffect(() => {
+    let active = true;
+    const hydrateStaff = async () => {
+      try {
+        await syncPublicCmsData();
+      } catch (error) {
+        if (active) {
+          setCmsError(error instanceof Error ? error.message : 'Unable to load public CMS data');
+        }
+      }
+      const token = await getStaffToken();
+      if (token) {
+        try {
+          const { account } = await api.staffMe(token);
+          if (!active) return;
+          setStaffAccount(account);
+          await syncAdminCmsData(token, account);
+        } catch (error) {
+          if (!active) return;
+          await setStaffToken(null);
+          setCmsError(error instanceof Error ? error.message : 'Unable to restore staff session');
+        }
+      }
+      if (active) setStaffReady(true);
+    };
+    void hydrateStaff();
+    return () => { active = false; };
+  }, [syncAdminCmsData, syncPublicCmsData]);
 
   const syncRemoteData = useCallback(async (token: string) => {
     try {
@@ -311,10 +428,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         resolved: Number(statsResponse.resolved ?? 0),
       });
       setNotifications(notificationsResponse.notifications);
-    } catch {
-      // Fall back to the local mocked data when the backend is unavailable.
+    } catch (error) {
+      setCmsError(error instanceof Error ? error.message : 'Unable to load account data');
     }
   }, []);
+
+  const getStaffAccessToken = useCallback(async () => {
+    const token = await getStaffToken();
+    if (!token) throw new Error('Your staff session has expired. Sign in again to continue.');
+    return token;
+  }, []);
+
+  const refreshDashboard = useCallback(async (token: string) => {
+    if (!staffAccount?.permissions.includes('view_analytics')) return;
+    const dashboard = await api.getCmsDashboard(token);
+    setRecentActivity(dashboard.activity);
+    setContentEngagement(dashboard.engagement);
+  }, [staffAccount]);
 
   useEffect(() => {
     const hydrateSession = async () => {
@@ -338,11 +468,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (phone: string, password: string) => {
     if (!phone.trim()) return { ok: false, errorKey: 'auth.errPhone' };
-    if (!isValidPhone(phone)) return { ok: false, errorKey: 'auth.errPhoneFormat' };
+    if (!isValidRwandaPhone(phone)) return { ok: false, errorKey: 'auth.errPhoneFormat' };
     if (!password) return { ok: false, errorKey: 'auth.errPassword' };
 
     try {
-      const normalized = normalizePhone(phone);
+      const normalized = normalizeRwandaPhone(phone);
       const { user, accessToken } = await api.login({ phone: normalized, password });
       await setAuthToken(accessToken);
       setUser({ id: user.id, username: user.username, phone: user.phone });
@@ -353,9 +483,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
       const lower = message.toLowerCase();
-      if (lower.includes('password')) return { ok: false, errorKey: 'auth.errPassword' };
-      if (lower.includes('verify') || lower.includes('expired')) return { ok: false, errorKey: 'verify.errCode' };
-      return { ok: false, errorKey: 'auth.errPhone' };
+      if (error instanceof TypeError) return { ok: false, errorKey: 'auth.errConnection' };
+      if (lower.includes('incorrect')) return { ok: false, errorKey: 'auth.errLogin' };
+      if (lower.includes('verify')) return { ok: false, errorKey: 'auth.errNotVerified' };
+      return { ok: false, errorKey: 'auth.errUnexpected' };
     }
   }, [syncRemoteData]);
 
@@ -364,11 +495,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const username = input.username.trim();
       if (username.length < 3) return { ok: false, errorKey: 'auth.errUsernameShort' };
       if (!input.phone.trim()) return { ok: false, errorKey: 'auth.errPhone' };
-      if (!isValidPhone(input.phone)) return { ok: false, errorKey: 'auth.errPhoneFormat' };
+      if (!isValidRwandaPhone(input.phone)) return { ok: false, errorKey: 'auth.errPhoneFormat' };
       if (input.password.length < 6) return { ok: false, errorKey: 'auth.errPasswordShort' };
 
       try {
-        const phone = normalizePhone(input.phone);
+        const phone = normalizeRwandaPhone(input.phone);
         await api.signup({ username, phone, password: input.password });
         setPending({ username, phone });
         setUser({ id: 'local', username, phone });
@@ -517,7 +648,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ─── Police hub actions ──────────────────────────────────────────────────
 
-  const getActiveBanner = useCallback(() => getActiveBannerCampaign(), []);
+  const getActiveBanner = useCallback(() => {
+    const now = Date.now();
+    return campaignRecords
+      .filter((campaign) =>
+        campaign.isActive
+        && campaign.slot === 'home_banner'
+        && new Date(campaign.startsAt).getTime() <= now
+        && new Date(campaign.endsAt).getTime() >= now,
+      )
+      .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime())[0] ?? null;
+  }, [campaignRecords]);
 
   const searchAnnouncements = useCallback(
     (query: string, type?: AnnouncementType): PoliceAnnouncement[] => {
@@ -567,18 +708,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [articles],
   );
 
-  const recordCampaignView = useCallback((id: string) => {
-    setCampaignStats((prev) => ({
-      ...prev,
-      [id]: { views: (prev[id]?.views ?? 0) + 1, clicks: prev[id]?.clicks ?? 0 },
-    }));
+  const recordCampaignView = useCallback(async (id: string) => {
+    try {
+      const { record } = await api.recordCmsMetric('campaign', id, 'views');
+      setCampaignRecords((current) => current.map((item) => item.id === id ? { ...item, views: Number(record.views) } : item));
+    } catch (error) {
+      setCmsError(error instanceof Error ? error.message : 'Unable to record campaign view');
+    }
   }, []);
 
-  const recordCampaignClick = useCallback((id: string) => {
-    setCampaignStats((prev) => ({
-      ...prev,
-      [id]: { views: prev[id]?.views ?? 0, clicks: (prev[id]?.clicks ?? 0) + 1 },
-    }));
+  const recordCampaignClick = useCallback(async (id: string) => {
+    try {
+      const { record } = await api.recordCmsMetric('campaign', id, 'clicks');
+      setCampaignRecords((current) => current.map((item) => item.id === id ? { ...item, clicks: Number(record.clicks) } : item));
+    } catch (error) {
+      setCmsError(error instanceof Error ? error.message : 'Unable to record campaign click');
+    }
   }, []);
 
   const getNewsletter = useCallback(
@@ -586,64 +731,100 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [newsletters],
   );
 
-  const createNewsletter = useCallback((input: Omit<Newsletter, 'id'>) => {
-    setNewsletters((current) => [{ ...input, id: makeId() }, ...current]);
-  }, []);
-  const updateNewsletter = useCallback((id: string, input: Partial<Omit<Newsletter, 'id'>>) => {
-    setNewsletters((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
-  }, []);
-  const deleteNewsletter = useCallback((id: string) => {
+  const createNewsletter = useCallback(async (input: Omit<Newsletter, 'id'>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.createCmsRecord<Newsletter>('newsletter', input, token);
+    setNewsletters((current) => [record, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const updateNewsletter = useCallback(async (id: string, input: Partial<Omit<Newsletter, 'id'>>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.updateCmsRecord<Newsletter>('newsletter', id, input, token);
+    setNewsletters((current) => current.map((item) => (item.id === id ? record : item)));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const deleteNewsletter = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsRecord('newsletter', id, token);
     setNewsletters((current) => current.filter((item) => item.id !== id));
-  }, []);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
   const getArticle = useCallback(
     (id: string) => articles.find((a) => a.id === id),
     [articles],
   );
 
-  const createArticle = useCallback((input: Omit<MediaArticle, 'id'>) => {
-    setArticles((current) => [{ ...input, id: makeId() }, ...current]);
-  }, []);
-  const updateArticle = useCallback((id: string, input: Partial<Omit<MediaArticle, 'id'>>) => {
-    setArticles((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
-  }, []);
-  const deleteArticle = useCallback((id: string) => {
+  const createArticle = useCallback(async (input: Omit<MediaArticle, 'id'>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.createCmsRecord<MediaArticle>('article', input, token);
+    setArticles((current) => [record, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const updateArticle = useCallback(async (id: string, input: Partial<Omit<MediaArticle, 'id'>>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.updateCmsRecord<MediaArticle>('article', id, input, token);
+    setArticles((current) => current.map((item) => (item.id === id ? record : item)));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const deleteArticle = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsRecord('article', id, token);
     setArticles((current) => current.filter((item) => item.id !== id));
-  }, []);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
   const getAnnouncement = useCallback(
     (id: string) => announcements.find((a) => a.id === id),
     [announcements],
   );
 
-  const createAnnouncement = useCallback((input: Omit<PoliceAnnouncement, 'id'>) => {
-    setAnnouncements((current) => [{ ...input, id: makeId() }, ...current]);
-  }, []);
+  const createAnnouncement = useCallback(async (input: Omit<PoliceAnnouncement, 'id'>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.createCmsRecord<PoliceAnnouncement>('announcement', input, token);
+    setAnnouncements((current) => [record, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
-  const updateAnnouncement = useCallback((id: string, input: Partial<Omit<PoliceAnnouncement, 'id'>>) => {
-    setAnnouncements((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
-  }, []);
+  const updateAnnouncement = useCallback(async (id: string, input: Partial<Omit<PoliceAnnouncement, 'id'>>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.updateCmsRecord<PoliceAnnouncement>('announcement', id, input, token);
+    setAnnouncements((current) => current.map((item) => (item.id === id ? record : item)));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
-  const deleteAnnouncement = useCallback((id: string) => {
+  const deleteAnnouncement = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsRecord('announcement', id, token);
     setAnnouncements((current) => current.filter((item) => item.id !== id));
-  }, []);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
   const getTrafficDoc = useCallback(
     (id: string) => trafficDocs.find((d) => d.id === id),
     [trafficDocs],
   );
 
-  const createTrafficDoc = useCallback((input: Omit<TrafficDocument, 'id'>) => {
-    setTrafficDocs((current) => [{ ...input, id: makeId() }, ...current]);
-  }, []);
+  const createTrafficDoc = useCallback(async (input: Omit<TrafficDocument, 'id'>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.createCmsRecord<TrafficDocument>('traffic_doc', input, token);
+    setTrafficDocs((current) => [record, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
-  const updateTrafficDoc = useCallback((id: string, input: Partial<Omit<TrafficDocument, 'id'>>) => {
-    setTrafficDocs((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
-  }, []);
+  const updateTrafficDoc = useCallback(async (id: string, input: Partial<Omit<TrafficDocument, 'id'>>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.updateCmsRecord<TrafficDocument>('traffic_doc', id, input, token);
+    setTrafficDocs((current) => current.map((item) => (item.id === id ? record : item)));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
-  const deleteTrafficDoc = useCallback((id: string) => {
+  const deleteTrafficDoc = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsRecord('traffic_doc', id, token);
     setTrafficDocs((current) => current.filter((item) => item.id !== id));
-  }, []);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
   // ─── Departments ──────────────────────────────────────────────────────────
 
@@ -665,42 +846,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   }, [departments]);
 
-  const createDepartment = useCallback((input: Omit<PoliceDepartment, 'id' | 'createdAt'>) => {
-    setDepartments((current) => [{ ...input, id: makeId(), createdAt: new Date().toISOString() }, ...current]);
-  }, []);
+  const createDepartment = useCallback(async (input: Omit<PoliceDepartment, 'id' | 'createdAt'> & { password?: string }) => {
+    const token = await getStaffAccessToken();
+    const { department } = await api.createCmsDepartment(input, token);
+    setDepartments((current) => [department, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
-  const updateDepartment = useCallback((id: string, input: Partial<Omit<PoliceDepartment, 'id' | 'createdAt'>>) => {
-    setDepartments((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
-  }, []);
+  const updateDepartment = useCallback(async (id: string, input: Partial<Omit<PoliceDepartment, 'id' | 'createdAt'>> & { password?: string }) => {
+    const token = await getStaffAccessToken();
+    const { department } = await api.updateCmsDepartment(id, input, token);
+    setDepartments((current) => current.map((item) => (item.id === id ? department : item)));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
-  const deleteDepartment = useCallback((id: string) => {
+  const deleteDepartment = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsDepartment(id, token);
     setDepartments((current) => current.filter((item) => item.id !== id));
-  }, []);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
   // ─── Discover search ──────────────────────────────────────────────────────
 
   const searchDiscoverPosts = useCallback((query: string): DiscoverPost[] => {
     const q = query.toLowerCase().trim();
-    if (q.length === 0) return DISCOVER_POSTS;
-    return DISCOVER_POSTS.filter(
+    if (q.length === 0) return discoverPosts;
+    return discoverPosts.filter(
       (p) =>
         p.title.toLowerCase().includes(q) ||
         p.body.toLowerCase().includes(q) ||
         p.departmentName.toLowerCase().includes(q) ||
         p.tags.some((t) => t.toLowerCase().includes(q)),
     );
-  }, []);
+  }, [discoverPosts]);
 
   const searchDiscoverVideos = useCallback((query: string): DiscoverVideo[] => {
     const q = query.toLowerCase().trim();
-    if (q.length === 0) return DISCOVER_VIDEOS;
-    return DISCOVER_VIDEOS.filter(
+    if (q.length === 0) return discoverVideos;
+    return discoverVideos.filter(
       (v) =>
         v.title.toLowerCase().includes(q) ||
         v.description.toLowerCase().includes(q) ||
         v.departmentName.toLowerCase().includes(q),
     );
-  }, []);
+  }, [discoverVideos]);
 
   const searchDiscoverPhotos = useCallback((query: string): DiscoverPhoto[] => {
     const q = query.toLowerCase().trim();
@@ -713,42 +903,71 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   }, [discoverPhotos]);
 
-  const createDiscoverPost = useCallback((input: Omit<DiscoverPost, 'id'>) => {
-    setDiscoverPosts((current) => [{ ...input, id: makeId() }, ...current]);
-  }, []);
-  const updateDiscoverPost = useCallback((id: string, input: Partial<Omit<DiscoverPost, 'id'>>) => {
-    setDiscoverPosts((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
-  }, []);
-  const deleteDiscoverPost = useCallback((id: string) => {
+  const createDiscoverPost = useCallback(async (input: Omit<DiscoverPost, 'id'>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.createCmsRecord<DiscoverPost>('discover_post', input, token);
+    setDiscoverPosts((current) => [record, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const updateDiscoverPost = useCallback(async (id: string, input: Partial<Omit<DiscoverPost, 'id'>>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.updateCmsRecord<DiscoverPost>('discover_post', id, input, token);
+    setDiscoverPosts((current) => current.map((item) => (item.id === id ? record : item)));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const deleteDiscoverPost = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsRecord('discover_post', id, token);
     setDiscoverPosts((current) => current.filter((item) => item.id !== id));
-  }, []);
-  const createDiscoverVideo = useCallback((input: Omit<DiscoverVideo, 'id'>) => {
-    setDiscoverVideos((current) => [{ ...input, id: makeId() }, ...current]);
-  }, []);
-  const updateDiscoverVideo = useCallback((id: string, input: Partial<Omit<DiscoverVideo, 'id'>>) => {
-    setDiscoverVideos((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
-  }, []);
-  const deleteDiscoverVideo = useCallback((id: string) => {
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const createDiscoverVideo = useCallback(async (input: Omit<DiscoverVideo, 'id'>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.createCmsRecord<DiscoverVideo>('discover_video', input, token);
+    setDiscoverVideos((current) => [record, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const updateDiscoverVideo = useCallback(async (id: string, input: Partial<Omit<DiscoverVideo, 'id'>>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.updateCmsRecord<DiscoverVideo>('discover_video', id, input, token);
+    setDiscoverVideos((current) => current.map((item) => (item.id === id ? record : item)));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const deleteDiscoverVideo = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsRecord('discover_video', id, token);
     setDiscoverVideos((current) => current.filter((item) => item.id !== id));
-  }, []);
-  const createDiscoverPhoto = useCallback((input: Omit<DiscoverPhoto, 'id'>) => {
-    setDiscoverPhotos((current) => [{ ...input, id: makeId() }, ...current]);
-  }, []);
-  const updateDiscoverPhoto = useCallback((id: string, input: Partial<Omit<DiscoverPhoto, 'id'>>) => {
-    setDiscoverPhotos((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
-  }, []);
-  const deleteDiscoverPhoto = useCallback((id: string) => {
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const createDiscoverPhoto = useCallback(async (input: Omit<DiscoverPhoto, 'id'>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.createCmsRecord<DiscoverPhoto>('discover_photo', input, token);
+    setDiscoverPhotos((current) => [record, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const updateDiscoverPhoto = useCallback(async (id: string, input: Partial<Omit<DiscoverPhoto, 'id'>>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.updateCmsRecord<DiscoverPhoto>('discover_photo', id, input, token);
+    setDiscoverPhotos((current) => current.map((item) => (item.id === id ? record : item)));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const deleteDiscoverPhoto = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsRecord('discover_photo', id, token);
     setDiscoverPhotos((current) => current.filter((item) => item.id !== id));
-  }, []);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
   // ─── Advertisements & Banners ─────────────────────────────────────────────
 
   const getActiveAdvertisements = useCallback(
     (targetPage?: Advertisement['targetPage']): Advertisement[] => {
-      const now = new Date().toISOString();
+      const now = Date.now();
       return advertisements.filter((ad) => {
         const isActive = ad.status === 'active';
-        const inWindow = ad.startDate <= now && ad.endDate >= now;
+        const startsAt = Date.parse(ad.startDate);
+        const endsAt = Date.parse(ad.endDate);
+        const inWindow = Number.isFinite(startsAt) && Number.isFinite(endsAt) && startsAt <= now && endsAt >= now;
         const matchesPage = !targetPage || ad.targetPage === targetPage || ad.targetPage === 'all';
         return isActive && inWindow && matchesPage;
       });
@@ -758,10 +977,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const getActiveWebBanners = useCallback(
     (location?: WebBanner['location']): WebBanner[] => {
-      const now = new Date().toISOString();
+      const now = Date.now();
       return webBanners.filter((b) => {
         const isActive = b.status === 'active';
-        const inWindow = b.startDate <= now && b.endDate >= now;
+        const startsAt = Date.parse(b.startDate);
+        const endsAt = Date.parse(b.endDate);
+        const inWindow = Number.isFinite(startsAt) && Number.isFinite(endsAt) && startsAt <= now && endsAt >= now;
         const matchesLocation = !location || b.location === location;
         return isActive && inWindow && matchesLocation;
       });
@@ -769,61 +990,88 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [webBanners],
   );
 
-  const recordAdImpression = useCallback((id: string) => {
-    setAdStats((prev) => ({
-      ...prev,
-      [id]: {
-        impressions: (prev[id]?.impressions ?? 0) + 1,
-        clicks: prev[id]?.clicks ?? 0,
-        views: prev[id]?.views ?? 0,
-      },
-    }));
+  const recordAdImpression = useCallback(async (id: string) => {
+    try {
+      const { record } = await api.recordCmsMetric('advertisement', id, 'impressions');
+      setAdvertisements((current) => current.map((item) => item.id === id
+        ? { ...item, impressions: Number(record.impressions) }
+        : item));
+    } catch (error) {
+      setCmsError(error instanceof Error ? error.message : 'Unable to record advertisement impression');
+    }
   }, []);
 
-  const recordAdClick = useCallback((id: string) => {
-    setAdStats((prev) => ({
-      ...prev,
-      [id]: {
-        impressions: prev[id]?.impressions ?? 0,
-        clicks: (prev[id]?.clicks ?? 0) + 1,
-        views: prev[id]?.views ?? 0,
-      },
-    }));
+  const recordAdClick = useCallback(async (id: string) => {
+    try {
+      const { record } = await api.recordCmsMetric('advertisement', id, 'clicks');
+      setAdvertisements((current) => current.map((item) => item.id === id
+        ? { ...item, clicks: Number(record.clicks) }
+        : item));
+    } catch (error) {
+      setCmsError(error instanceof Error ? error.message : 'Unable to record advertisement click');
+    }
   }, []);
 
-  const createAdvertisement = useCallback((input: Omit<Advertisement, 'id' | 'createdAt'>) => {
-    setAdvertisements((current) => [{ ...input, id: makeId(), createdAt: new Date().toISOString() }, ...current]);
-  }, []);
-  const updateAdvertisement = useCallback((id: string, input: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => {
-    setAdvertisements((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
-  }, []);
-  const deleteAdvertisement = useCallback((id: string) => {
+  const createAdvertisement = useCallback(async (input: Omit<Advertisement, 'id' | 'createdAt'>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.createCmsRecord<Advertisement>('advertisement', input, token);
+    setAdvertisements((current) => [record, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const updateAdvertisement = useCallback(async (id: string, input: Partial<Omit<Advertisement, 'id' | 'createdAt'>>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.updateCmsRecord<Advertisement>('advertisement', id, input, token);
+    setAdvertisements((current) => current.map((item) => (item.id === id ? record : item)));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const deleteAdvertisement = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsRecord('advertisement', id, token);
     setAdvertisements((current) => current.filter((item) => item.id !== id));
-  }, []);
-  const createWebBanner = useCallback((input: Omit<WebBanner, 'id' | 'createdAt'>) => {
-    setWebBanners((current) => [{ ...input, id: makeId(), createdAt: new Date().toISOString() }, ...current]);
-  }, []);
-  const updateWebBanner = useCallback((id: string, input: Partial<Omit<WebBanner, 'id' | 'createdAt'>>) => {
-    setWebBanners((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
-  }, []);
-  const deleteWebBanner = useCallback((id: string) => {
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const createWebBanner = useCallback(async (input: Omit<WebBanner, 'id' | 'createdAt'>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.createCmsRecord<WebBanner>('web_banner', input, token);
+    setWebBanners((current) => [record, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const updateWebBanner = useCallback(async (id: string, input: Partial<Omit<WebBanner, 'id' | 'createdAt'>>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.updateCmsRecord<WebBanner>('web_banner', id, input, token);
+    setWebBanners((current) => current.map((item) => (item.id === id ? record : item)));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const deleteWebBanner = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsRecord('web_banner', id, token);
     setWebBanners((current) => current.filter((item) => item.id !== id));
-  }, []);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
-  const createAdminUser = useCallback((input: Omit<AdminUser, 'id' | 'createdAt' | 'lastLoginAt'>) => {
-    setAdminUsers((current) => [{
-      ...input,
-      id: makeId(),
-      createdAt: new Date().toISOString(),
-      lastLoginAt: undefined,
-    }, ...current]);
-  }, []);
-  const updateAdminUser = useCallback((id: string, input: Partial<Omit<AdminUser, 'id' | 'createdAt'>>) => {
-    setAdminUsers((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
-  }, []);
-  const deleteAdminUser = useCallback((id: string) => {
+  const createAdminUser = useCallback(async (
+    input: Omit<AdminUser, 'id' | 'createdAt' | 'lastLoginAt'> & { password: string },
+  ) => {
+    const token = await getStaffAccessToken();
+    const { account } = await api.createCmsAccount(input, token);
+    setAdminUsers((current) => [account, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const updateAdminUser = useCallback(async (
+    id: string,
+    input: Partial<Omit<AdminUser, 'id' | 'createdAt'>> & { password?: string },
+  ) => {
+    const token = await getStaffAccessToken();
+    const { account } = await api.updateCmsAccount(id, input, token);
+    setAdminUsers((current) => current.map((item) => (item.id === id ? account : item)));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const deleteAdminUser = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsAccount(id, token);
     setAdminUsers((current) => current.filter((item) => item.id !== id));
-  }, []);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
 
   // ─── Notifications ────────────────────────────────────────────────────────
 
@@ -876,50 +1124,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // ─── Admin helpers ─────────────────────────────────────────────────────────
 
   const can = useCallback(
-    (permission: AdminPermission) => {
-      const admin = DEMO_ADMIN;
-      if (admin.role === 'super_admin') return true;
-      return admin.permissions.includes(permission);
-    },
-    [],
+    (permission: AdminPermission) => staffAccount?.permissions.includes(permission) ?? false,
+    [staffAccount],
   );
 
-  const contentEngagement = useMemo(() => {
-    const views =
-      DISCOVER_POSTS.reduce((s, p) => s + p.views, 0) +
-      DISCOVER_VIDEOS.reduce((s, v) => s + v.views, 0) +
-      DISCOVER_PHOTOS.reduce((s, p) => s + p.views, 0);
-
-    // Document downloads are tracked per published PDF.
-    const downloads =
-      TRAFFIC_DOCS.filter((d) => d.pdfUrl).length * 148 +
-      NEWSLETTERS.filter((n) => n.pdfUrl).length * 96;
-
-    return { views, downloads };
-  }, []);
-
-  // Merge live campaign stats into CAMPAIGNS list
   const campaigns = useMemo(
-    () =>
-      CAMPAIGNS.map((c) => ({
-        ...c,
-        views: campaignStats[c.id]?.views ?? c.views,
-        clicks: campaignStats[c.id]?.clicks ?? c.clicks,
-      })),
-    [campaignStats],
+    () => campaignRecords.map((c) => ({
+      ...c,
+    })),
+    [campaignRecords],
   );
 
-  // Merge live ad stats into the mutable advertisements list
-  const advertisementsWithStats = useMemo(
-    () =>
-      advertisements.map((a) => ({
-        ...a,
-        impressions: adStats[a.id]?.impressions ?? a.impressions,
-        clicks: adStats[a.id]?.clicks ?? a.clicks,
-        views: adStats[a.id]?.views ?? a.views,
-      })),
-    [adStats, advertisements],
-  );
+  const createCampaign = useCallback(async (input: Omit<Campaign, 'id' | 'views' | 'clicks'>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.createCmsRecord<Campaign>('campaign', { ...input, views: 0, clicks: 0 }, token);
+    setCampaignRecords((current) => [record, ...current]);
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const updateCampaign = useCallback(async (id: string, input: Partial<Omit<Campaign, 'id'>>) => {
+    const token = await getStaffAccessToken();
+    const { record } = await api.updateCmsRecord<Campaign>('campaign', id, input, token);
+    setCampaignRecords((current) => current.map((item) => item.id === id ? record : item));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+  const deleteCampaign = useCallback(async (id: string) => {
+    const token = await getStaffAccessToken();
+    await api.deleteCmsRecord('campaign', id, token);
+    setCampaignRecords((current) => current.filter((item) => item.id !== id));
+    await refreshDashboard(token);
+  }, [getStaffAccessToken, refreshDashboard]);
+
+  const advertisementsWithStats = advertisements;
 
   const myReports = useMemo(
     () => reports.filter((r) => r.authorId === (user?.id ?? 'me')),
@@ -935,6 +1170,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => points.filter((p) => p.status === 'pending').reduce((sum, p) => sum + p.points, 0),
     [points],
   );
+
+  const adminUser = useMemo<AdminUser | null>(() => {
+    if (!staffAccount) return null;
+    if (staffAccount.accountType === 'admin') {
+      return {
+        id: staffAccount.id,
+        username: staffAccount.username,
+        email: staffAccount.email,
+        role: staffAccount.role,
+        departmentId: staffAccount.departmentId ?? undefined,
+        isActive: staffAccount.isActive,
+        createdAt: staffAccount.createdAt,
+        lastLoginAt: staffAccount.lastLoginAt,
+        permissions: staffAccount.permissions,
+      };
+    }
+    return {
+      id: staffAccount.id,
+      username: staffAccount.username,
+      email: '',
+      role: 'police_admin',
+      departmentId: staffAccount.departmentId,
+      isActive: true,
+      createdAt: '',
+      permissions: staffAccount.permissions,
+    };
+  }, [staffAccount]);
 
   const value = useMemo<AppValue>(
     () => ({
@@ -954,6 +1216,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       signup,
       verify,
       logout,
+      staffAccount,
+      staffReady,
+      staffLogin,
+      staffLogout,
       submitReport,
       getReport,
       // Police hub
@@ -1022,6 +1288,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       createWebBanner,
       updateWebBanner,
       deleteWebBanner,
+      createCampaign,
+      updateCampaign,
+      deleteCampaign,
       // Notifications
       notifications,
       unreadCount,
@@ -1029,15 +1298,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       markNotificationRead,
       markAllNotificationsRead,
       // Admin
-      adminUser: DEMO_ADMIN,
-      isAdmin: true,
+      adminUser,
+      isAdmin: staffAccount !== null,
       adminUsers,
       createAdminUser,
       updateAdminUser,
       deleteAdminUser,
-      recentActivity: ADMIN_ACTIVITY,
+      recentActivity,
       can,
       contentEngagement,
+      cmsReady,
+      cmsError,
+      refreshCms,
     }),
     [
       phase,
@@ -1056,6 +1328,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       signup,
       verify,
       logout,
+      staffAccount,
+      staffReady,
+      staffLogin,
+      staffLogout,
       submitReport,
       getReport,
       campaigns,
@@ -1109,6 +1385,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       createWebBanner,
       updateWebBanner,
       deleteWebBanner,
+      createCampaign,
+      updateCampaign,
+      deleteCampaign,
       announcements,
       trafficDocs,
       departments,
@@ -1119,6 +1398,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       newsletters,
       webBanners,
       adminUsers,
+      adminUser,
+      recentActivity,
       createAdminUser,
       updateAdminUser,
       deleteAdminUser,
@@ -1129,6 +1410,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       markAllNotificationsRead,
       can,
       contentEngagement,
+      cmsReady,
+      cmsError,
+      refreshCms,
     ],
   );
 

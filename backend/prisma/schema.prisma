@@ -30,17 +30,116 @@ enum NotificationKind {
   traffic_doc
 }
 
+enum AdminRole {
+  super_admin
+  content_admin
+  police_admin
+  traffic_admin
+  advertising_admin
+}
+
+enum CmsResource {
+  announcement
+  traffic_doc
+  article
+  newsletter
+  discover_post
+  discover_video
+  discover_photo
+  advertisement
+  web_banner
+  campaign
+}
+
+enum AdminActivityArea {
+  content
+  police
+  traffic
+  advertising
+  system
+}
+
+enum AdminActivityAction {
+  created
+  updated
+  published
+  unpublished
+  archived
+  verified
+  suspended
+  scheduled
+}
+
 model User {
-  id            String                  @id @default(cuid())
+  id            String                 @id @default(cuid())
   username      String
-  phone         String                  @unique
+  phone         String                 @unique
   passwordHash  String
   verifiedAt    DateTime?
-  createdAt     DateTime                @default(now())
+  createdAt     DateTime               @default(now())
   reports       Report[]
   points        PointEntry[]
   notifications Notification[]
   verification  VerificationChallenge?
+}
+
+model PoliceDepartment {
+  id           String         @id @default(cuid())
+  name         String
+  shortName    String
+  type         String
+  description  String         @default("")
+  location     String         @default("")
+  logoUri      String?
+  coverUri     String?
+  contactPhone String?
+  contactEmail String?
+  website      String?
+  socialLinks  Json?
+  isVerified   Boolean        @default(false)
+  username     String?        @unique
+  passwordHash String?
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  admins       AdminAccount[]
+}
+
+model AdminAccount {
+  id           String            @id @default(cuid())
+  username     String            @unique
+  email        String            @unique
+  passwordHash String
+  role         AdminRole
+  departmentId String?
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  lastLoginAt  DateTime?
+  department   PoliceDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+}
+
+model CmsRecord {
+  id           String      @id @default(cuid())
+  resource     CmsResource
+  content      Json
+  departmentId String?
+  createdById  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([resource, createdAt])
+  @@index([departmentId, resource])
+}
+
+model AdminActivityLog {
+  id          String            @id @default(cuid())
+  actorId     String?
+  actor       String
+  action      AdminActivityAction
+  description String
+  area        AdminActivityArea
+  createdAt   DateTime          @default(now())
+
+  @@index([createdAt])
 }
 
 model Notification {
@@ -59,17 +158,17 @@ model Notification {
 }
 
 model VerificationChallenge {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  codeHash    String
-  expiresAt   DateTime
-  attempts    Int      @default(0)
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Report {
-  id             String        @id @default(cuid())
+  id             String           @id @default(cuid())
   authorId       String
   categoryId     String
   description    String
@@ -77,16 +176,16 @@ model Report {
   latitude       Float
   longitude      Float
   area           String
-  isAnonymous    Boolean       @default(false)
+  isAnonymous    Boolean          @default(false)
   incidentAt     DateTime?
-  status         ReportStatus  @default(submitted)
+  status         ReportStatus     @default(submitted)
   duplicateOfId  String?
-  linkedCount    Int           @default(1)
-  pointsEligible Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  author         User          @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  duplicateOf    Report?       @relation("ReportDuplicates", fields: [duplicateOfId], references: [id], onDelete: SetNull)
-  duplicates     Report[]      @relation("ReportDuplicates")
+  linkedCount    Int              @default(1)
+  pointsEligible Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  author         User             @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  duplicateOf    Report?          @relation("ReportDuplicates", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates     Report[]         @relation("ReportDuplicates")
   timeline       ReportTimeline[]
   points         PointEntry[]
 

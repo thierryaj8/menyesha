@@ -10,6 +10,7 @@ import { TopBar } from '@/components/TopBar';
 import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
+import { runCmsMutation } from '@/utils/cms';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
 import type { MediaArticle, PublishStatus } from '@/types';
@@ -77,14 +78,18 @@ export default function AdminNewsScreen() {
       tags: values.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
     };
     if (!input.title || !input.summary || !input.body) return;
-    if (editor.article) updateArticle(editor.article.id, input);
-    else createArticle(input);
-    setEditor({ open: false });
+    void runCmsMutation(editor.article ? 'Save article' : 'Create article', async () => {
+      if (editor.article) await updateArticle(editor.article.id, input);
+      else await createArticle(input);
+      setEditor({ open: false });
+    });
   };
   const remove = (article: MediaArticle) => {
     Alert.alert('Delete article', `Delete “${article.title}”?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteArticle(article.id) },
+      { text: 'Delete', style: 'destructive', onPress: () => {
+        void runCmsMutation('Delete article', () => deleteArticle(article.id));
+      } },
     ]);
   };
 

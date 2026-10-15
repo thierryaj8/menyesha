@@ -9,6 +9,7 @@ import { TopBar } from '@/components/TopBar';
 import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
+import { runCmsMutation } from '@/utils/cms';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
 import type { DiscoverPhoto } from '@/types';
@@ -32,7 +33,7 @@ export default function AdminPhotosScreen() {
   ];
   const submit = (values: Record<string, string>) => {
     const input = {
-      departmentId: editor.photo?.departmentId ?? 'admin-created',
+      departmentId: editor.photo?.departmentId,
       departmentName: values.departmentName.trim() || 'Rwanda National Police',
       title: values.title.trim(),
       caption: values.caption.trim(),
@@ -43,13 +44,17 @@ export default function AdminPhotosScreen() {
       isVerified: editor.photo?.isVerified ?? true,
     };
     if (!input.title || !input.caption) return;
-    if (editor.photo) updateDiscoverPhoto(editor.photo.id, input);
-    else createDiscoverPhoto(input);
-    setEditor({ open: false });
+    void runCmsMutation(editor.photo ? 'Save photo' : 'Create photo', async () => {
+      if (editor.photo) await updateDiscoverPhoto(editor.photo.id, input);
+      else await createDiscoverPhoto(input);
+      setEditor({ open: false });
+    });
   };
   const remove = (photo: DiscoverPhoto) => Alert.alert('Delete photo', `Delete “${photo.title}”?`, [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => deleteDiscoverPhoto(photo.id) },
+    { text: 'Delete', style: 'destructive', onPress: () => {
+      void runCmsMutation('Delete photo', () => deleteDiscoverPhoto(photo.id));
+    } },
   ]);
 
   return (

@@ -1,9 +1,14 @@
 export function normalizePhone(raw: string): string {
-  const digits = raw.replace(/[^\d+]/g, '');
-  if (digits.startsWith('+250')) return `+250${digits.slice(4).replace(/\D/g, '')}`;
-  if (digits.startsWith('250')) return `+250${digits.slice(3).replace(/\D/g, '')}`;
-  if (digits.startsWith('0')) return `+250${digits.slice(1).replace(/\D/g, '')}`;
-  return `+250${digits.replace(/\D/g, '')}`;
+  const compact = raw.trim().replace(/[\s().-]/g, '');
+  const digits = compact.replace(/\D/g, '');
+
+  if (compact.startsWith('+') && !compact.startsWith('+250')) return '';
+  if (compact.startsWith('+250')) return `+250${digits.slice(3)}`;
+  if (!compact.startsWith('+') && digits.startsWith('250') && digits.length > 9) {
+    return `+250${digits.slice(3)}`;
+  }
+  if (digits.startsWith('0') && digits.length === 10) return `+250${digits.slice(1)}`;
+  return `+250${digits}`;
 }
 
 export function isValidPhone(phone: string): boolean {

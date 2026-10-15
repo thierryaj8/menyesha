@@ -9,6 +9,7 @@ import { TopBar } from '@/components/TopBar';
 import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
+import { runCmsMutation } from '@/utils/cms';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
 import type { Newsletter } from '@/types';
@@ -55,13 +56,17 @@ export default function AdminNewslettersScreen() {
       articleIds: editor.newsletter?.articleIds ?? [],
     };
     if (!input.title) return;
-    if (editor.newsletter) updateNewsletter(editor.newsletter.id, input);
-    else createNewsletter(input);
-    setEditor({ open: false });
+    void runCmsMutation(editor.newsletter ? 'Save newsletter' : 'Create newsletter', async () => {
+      if (editor.newsletter) await updateNewsletter(editor.newsletter.id, input);
+      else await createNewsletter(input);
+      setEditor({ open: false });
+    });
   };
   const remove = (newsletter: Newsletter) => Alert.alert('Delete newsletter', `Delete “${newsletter.title}”?`, [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => deleteNewsletter(newsletter.id) },
+    { text: 'Delete', style: 'destructive', onPress: () => {
+      void runCmsMutation('Delete newsletter', () => deleteNewsletter(newsletter.id));
+    } },
   ]);
 
   return (

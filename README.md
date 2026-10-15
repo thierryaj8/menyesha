@@ -4,8 +4,9 @@ A citizen reporting app for Kigali. See a problem — crime, broken infrastructu
 environmental damage, utility cuts, traffic hazards — report it in a few taps, then
 follow what happens.
 
-Authentication and citizen report data require the backend. Police, admin, and
-discovery content still use local mock data.
+Authentication, reports, and the admin/police CMS use the backend and PostgreSQL.
+CMS content starts empty and is created by authorized staff; no sample records
+or shared staff credentials are required.
 
 ## Run it
 
@@ -19,8 +20,12 @@ For backend-backed auth and reports, start the API and database as described in
 the default host is not reachable from your device. Android emulators use
 `http://10.0.2.2:4000`; physical devices need the computer's LAN address.
 
-Create an account in the app. In development, the verification code is printed
-in the backend terminal; production sends it through the configured SMS webhook.
+Rwanda phone numbers can be entered with or without the local leading `0`; the
+app applies the fixed `+250` country code. Other country codes are not accepted.
+Create the initial super-admin account as described in
+[`backend/README.md`](backend/README.md). In development, signup verification
+codes are printed in the backend terminal; production sends them through the
+configured SMS webhook.
 
 ## What is here
 
@@ -28,7 +33,7 @@ in the backend terminal; production sends it through the configured SMS webhook.
 | --- | --- | --- |
 | Log in | `/login` | Phone + password, with a **Call 112** block that needs no login |
 | Sign up | `/signup` | username, +250 number, password |
-| Phone check | `/verify` | 6-digit SMS code (demo: `123456`) |
+| Phone check | `/verify` | 6-digit SMS code |
 | Home | `/` | Greeting, emergency banner, FixPoints, two big buttons, recent reports, "Kigali this week" |
 | Report · 1. Pick a problem | `/report` | 5 categories, one tap moves you on |
 | Report · 2. Details | `/report/details` | One sentence, optional photo/video, location on a small map |
@@ -89,8 +94,8 @@ The language switcher on the FixPoints screen proves it works.
 ## Backend API
 
 The standalone Express and PostgreSQL API is in [`backend/README.md`](backend/README.md).
-The Expo app connects signup, verification, login, session hydration, report
-submission and history, points history, and Kigali weekly statistics through
+The Expo app connects citizen auth/report flows and staff login, CMS content,
+department/account management, analytics, and audit activity to the API through
 `src/store/AppProvider.tsx` and `src/utils/api.ts`.
 
 - Photo/video uploads need a storage provider; report creation currently accepts

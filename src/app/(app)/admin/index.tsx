@@ -6,7 +6,7 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
@@ -14,6 +14,7 @@ import { ROLE_LABELS } from '@/data/adminUsers';
 import { formatWhen } from '@/utils/format';
 import type { ActivityAction, AdminPermission } from '@/types';
 import { HIT_SIZE, radius, sans, serif, shadow, spacing, useTheme, type Colors } from '@/theme';
+import { runCmsMutation } from '@/utils/cms';
 
 interface NavCard {
   icon: string;
@@ -33,6 +34,13 @@ const NAV_CARDS: NavCard[] = [
     route: '/admin/police',
     permission: 'manage_departments',
     accent: true,
+  },
+  {
+    icon: 'megaphone',
+    titleKey: 'admin.police.announcements',
+    subtitleKey: 'admin.police.announcementsSub',
+    route: '/admin/police/announcements',
+    permission: 'manage_announcements',
   },
   {
     icon: 'newspaper',
@@ -107,6 +115,7 @@ export default function AdminDashboardScreen() {
     recentActivity,
     contentEngagement,
     can,
+    staffLogout,
   } = useApp();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -155,6 +164,19 @@ export default function AdminDashboardScreen() {
             <Text style={styles.adminName}>{adminUser.username}</Text>
             <Text style={styles.adminRole}>{ROLE_LABELS[adminUser.role]}</Text>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Sign out of staff account"
+            onPress={() => {
+              void runCmsMutation('Sign out', async () => {
+                await staffLogout();
+                router.replace('/staff-login' as Href);
+              });
+            }}
+            style={styles.logoutButton}
+          >
+            <Ionicons name="log-out-outline" size={20} color={colors.brand} />
+          </Pressable>
           <View style={styles.activeBadge}>
             <Text style={styles.activeBadgeText}>ACTIVE</Text>
           </View>
@@ -299,6 +321,7 @@ const makeStyles = (colors: Colors) =>
       justifyContent: 'center',
     },
     adminInfo: { flex: 1 },
+    logoutButton: { width: 40, height: 40, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sage },
     adminName: { ...sans.label, color: colors.white },
     adminRole: { ...sans.tiny, color: 'rgba(255,255,255,0.7)' },
     activeBadge: {

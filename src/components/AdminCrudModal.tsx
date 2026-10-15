@@ -11,6 +11,8 @@ export type CrudField = {
   placeholder?: string;
   value: string;
   multiline?: boolean;
+  optional?: boolean;
+  secureTextEntry?: boolean;
   keyboardType?: 'default' | 'numeric' | 'email-address';
   autoCapitalize?: 'none' | 'sentences' | 'words';
   hint?: string;
@@ -45,7 +47,9 @@ export function AdminCrudModal({
 
   const update = (key: string, value: string) => setValues((current) => ({ ...current, [key]: value }));
 
-  const canSubmit = fields.every((field) => field.key === 'notes' || values[field.key]?.trim().length > 0);
+  const canSubmit = fields.every((field) =>
+    field.optional || field.key === 'notes' || values[field.key]?.trim().length > 0,
+  );
   const resetKey = initialValues.map((field) => `${field.key}:${field.value}`).join('|');
 
   return (
@@ -78,6 +82,7 @@ export function AdminCrudModal({
                 keyboardType={field.keyboardType}
                 autoCapitalize={field.autoCapitalize ?? 'sentences'}
                 multiline={field.multiline}
+                secureTextEntry={field.secureTextEntry}
                 hint={field.hint}
               />
             ))}

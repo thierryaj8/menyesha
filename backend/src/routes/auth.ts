@@ -5,9 +5,11 @@ import { z } from 'zod';
 import { prisma } from '../db.js';
 import { HttpError } from '../errors.js';
 import { authenticate } from '../middleware/authenticate.js';
+import { authenticateStaff } from '../middleware/authenticate-staff.js';
 import { isValidPhone, normalizePhone } from '../services/phone.js';
 import { sendVerificationCode } from '../services/sms.js';
-import { createAccessToken } from '../services/token.js';
+import { createAccessToken, createStaffAccessToken } from '../services/token.js';
+import { permissionsForRole } from '../services/staff-permissions.js';
 
 export const authRouter = Router();
 
@@ -27,6 +29,11 @@ const verifySchema = z.object({
   code: z.string().regex(/^\d{6}$/),
 });
 
+const staffLoginSchema = z.object({
+  username: z.string().trim().min(1).max(100),
+  password: z.string().min(1).max(128),
+});
+
 function parse<T>(schema: z.ZodType<T>, input: unknown): T {
   const result = schema.safeParse(input);
   if (!result.success) throw new HttpError(400, result.error.issues[0]?.message ?? 'Invalid request');
@@ -36,6 +43,79 @@ function parse<T>(schema: z.ZodType<T>, input: unknown): T {
 function publicUser(user: { id: string; username: string; phone: string }) {
   return { id: user.id, username: user.username, phone: user.phone };
 }
+
+function publicStaffAccount(
+  account:
+    | {
+        id: string; username: string; email: string; role: string; departmentId: string | null;
+        isActive: boolean; createdAt: Date; lastLoginAt: Date | null;
+      }
+    | { id: string; username: string | null; name: string; shortName: string },
+) {
+  if ('email' in account) {
+    return {
+      id: account.id,
+      username: account.username,
+      email: account.email,
+      role: account.role,
+      departmentId: account.departmentId,
+      isActive: account.isActive,
+      createdAt: account.createdAt.toISOString(),
+      lastLoginAt: account.lastLoginAt?.toISOString(),
+      permissions: permissionsForRole(account.role as import('@prisma/client').AdminRole),
+      accountType: 'admin' as const,
+    };
+  }
+  return {
+    id: account.id,
+    username: account.username ?? account.shortName,
+    name: account.name,
+    shortName: account.shortName,
+    departmentId: account.id,
+    permissions: ['manage_announcements'],
+    accountType: 'department' as const,
+  };
+}
+
+authRouter.post('/staff/login', async (req, res) => {
+  const input = parse(staffLoginSchema, req.body);
+  const username = input.username.toLowerCase();
+  const [admin, department] = await Promise.all([
+    prisma.adminAccount.findUnique({ where: { username } }),
+    prisma.policeDepartment.findUnique({ where: { username } }),
+  ]);
+
+  if (admin && department) throw new HttpError(401, 'Username or password is incorrect');
+
+  const account = admin ?? department;
+  const passwordHash = account?.passwordHash;
+  const passwordMatches = passwordHash ? await bcrypt.compare(input.password, passwordHash) : false;
+  if (!account || !account.isActive || !passwordMatches) {
+    throw new HttpError(401, 'Username or password is incorrect');
+  }
+
+  const authenticatedAccount = admin
+    ? await prisma.adminAccount.update({
+        where: { id: admin.id },
+        data: { lastLoginAt: new Date() },
+      })
+    : department!;
+  const accountType = admin ? 'admin' : 'department';
+  res.json({
+    account: publicStaffAccount(authenticatedAccount),
+    accessToken: createStaffAccessToken(account.id, accountType),
+  });
+});
+
+authRouter.get('/staff/me', authenticateStaff, async (req, res) => {
+  const account = req.authStaffType === 'admin'
+    ? await prisma.adminAccount.findUnique({ where: { id: req.authStaffId } })
+    : await prisma.policeDepartment.findUnique({ where: { id: req.authStaffId } });
+
+  if (!account || !account.isActive) throw new HttpError(401, 'Invalid or expired access token');
+
+  res.json({ account: publicStaffAccount(account) });
+});
 
 authRouter.post('/signup', async (req, res) => {
   const input = parse(signupSchema, req.body);

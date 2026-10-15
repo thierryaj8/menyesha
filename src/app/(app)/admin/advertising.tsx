@@ -13,7 +13,7 @@ import { HIT_SIZE, radius, sans, shadow, spacing, useTheme, type Colors } from '
 
 export default function AdminAdvertisingScreen() {
   const t = useT();
-  const { advertisements, webBanners } = useApp();
+  const { advertisements, webBanners, campaigns } = useApp();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -35,6 +35,13 @@ export default function AdminAdvertisingScreen() {
       count: advertisements.length,
       activeCount: activeAds.length,
       accent: true,
+    },
+    {
+      icon: 'megaphone',
+      title: 'Campaigns',
+      subtitle: 'Manage campaign placements and dates',
+      route: '/admin/campaigns',
+      count: campaigns.length,
     },
     {
       icon: 'browsers',

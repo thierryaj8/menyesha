@@ -247,6 +247,7 @@ export type DepartmentType =
 
 export interface PoliceDepartment {
   id: string;
+  username?: string;
   name: string;
   shortName: string;
   type: DepartmentType;
@@ -363,13 +364,36 @@ export interface AdminUser {
   username: string;
   email: string;
   role: AdminRole;
-  departmentId?: string;
+  departmentId?: string | null;
   isActive: boolean;
   /** ISO date string */
   createdAt: string;
   lastLoginAt?: string;
   permissions: AdminPermission[];
 }
+
+export type StaffAccount =
+  | {
+      accountType: 'admin';
+      id: string;
+      username: string;
+      email: string;
+      role: AdminRole;
+      departmentId?: string | null;
+      isActive: boolean;
+      createdAt: string;
+      lastLoginAt?: string;
+      permissions: AdminPermission[];
+    }
+  | {
+      accountType: 'department';
+      id: string;
+      username: string;
+      name: string;
+      shortName: string;
+      departmentId: string;
+      permissions: AdminPermission[];
+    };
 
 export type AdminPermission =
   | 'manage_departments'
@@ -438,7 +462,7 @@ export interface AdminActivity {
 
 export interface DiscoverPost {
   id: string;
-  departmentId: string;
+  departmentId?: string;
   departmentName: string;
   title: string;
   body: string;
@@ -453,7 +477,7 @@ export interface DiscoverPost {
 
 export interface DiscoverVideo {
   id: string;
-  departmentId: string;
+  departmentId?: string;
   departmentName: string;
   title: string;
   description: string;
@@ -469,7 +493,7 @@ export interface DiscoverVideo {
 
 export interface DiscoverPhoto {
   id: string;
-  departmentId: string;
+  departmentId?: string;
   departmentName: string;
   title: string;
   caption?: string;

@@ -11,6 +11,7 @@ import { TopBar } from '@/components/TopBar';
 import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
+import { runCmsMutation } from '@/utils/cms';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
 import type { TrafficDocCategory, TrafficDocument } from '@/types';
@@ -62,13 +63,17 @@ export default function AdminTrafficScreen() {
       version: values.version.trim() || '1.0',
     };
     if (!input.title || !input.summary || !input.issuingAuthority) return;
-    if (editor.doc) updateTrafficDoc(editor.doc.id, input);
-    else createTrafficDoc(input);
-    setEditor({ open: false });
+    void runCmsMutation(editor.doc ? 'Save traffic document' : 'Create traffic document', async () => {
+      if (editor.doc) await updateTrafficDoc(editor.doc.id, input);
+      else await createTrafficDoc(input);
+      setEditor({ open: false });
+    });
   };
   const remove = (doc: TrafficDocument) => Alert.alert('Delete traffic document', `Delete “${doc.title}”?`, [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => deleteTrafficDoc(doc.id) },
+    { text: 'Delete', style: 'destructive', onPress: () => {
+      void runCmsMutation('Delete traffic document', () => deleteTrafficDoc(doc.id));
+    } },
   ]);
 
   return (

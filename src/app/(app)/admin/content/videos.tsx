@@ -9,6 +9,7 @@ import { TopBar } from '@/components/TopBar';
 import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
+import { runCmsMutation } from '@/utils/cms';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
 import type { DiscoverVideo } from '@/types';
@@ -32,25 +33,29 @@ export default function AdminVideosScreen() {
   ];
   const submit = (values: Record<string, string>) => {
     const input = {
-      departmentId: editor.video?.departmentId ?? 'admin-created',
+      departmentId: editor.video?.departmentId,
       departmentName: values.departmentName.trim() || 'Rwanda National Police',
       title: values.title.trim(),
       description: values.description.trim(),
       thumbnailUri: editor.video?.thumbnailUri,
-      youtubeUrl: values.youtubeUrl.trim(),
-      duration: values.duration.trim(),
+      youtubeUrl: values.youtubeUrl.trim() || undefined,
+      duration: values.duration.trim() || undefined,
       publishedAt: editor.video?.publishedAt ?? new Date().toISOString(),
       views: editor.video?.views ?? 0,
       isVerified: editor.video?.isVerified ?? true,
     };
     if (!input.title || !input.description) return;
-    if (editor.video) updateDiscoverVideo(editor.video.id, input);
-    else createDiscoverVideo(input);
-    setEditor({ open: false });
+    void runCmsMutation(editor.video ? 'Save video' : 'Create video', async () => {
+      if (editor.video) await updateDiscoverVideo(editor.video.id, input);
+      else await createDiscoverVideo(input);
+      setEditor({ open: false });
+    });
   };
   const remove = (video: DiscoverVideo) => Alert.alert('Delete video', `Delete “${video.title}”?`, [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => deleteDiscoverVideo(video.id) },
+    { text: 'Delete', style: 'destructive', onPress: () => {
+      void runCmsMutation('Delete video', () => deleteDiscoverVideo(video.id));
+    } },
   ]);
 
   return (

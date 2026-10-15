@@ -10,14 +10,25 @@ import { TopBar } from '@/components/TopBar';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
 import { HIT_SIZE, radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
+import type { AdminPermission } from '@/types';
+
+interface PoliceSection {
+  icon: string;
+  title: string;
+  subtitle: string;
+  route: string;
+  count: number;
+  accent?: boolean;
+  permission: AdminPermission;
+}
 
 export default function AdminPoliceScreen() {
   const t = useT();
-  const { departments, announcements, adminUsers } = useApp();
+  const { departments, announcements, adminUsers, can } = useApp();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
-  const sections = [
+  const sections: PoliceSection[] = [
     {
       icon: 'shield-checkmark',
       title: t('admin.police.departments'),
@@ -25,6 +36,7 @@ export default function AdminPoliceScreen() {
       route: '/admin/police/departments',
       count: departments.length,
       accent: true,
+      permission: 'manage_departments',
     },
     {
       icon: 'people',
@@ -32,6 +44,7 @@ export default function AdminPoliceScreen() {
       subtitle: t('admin.police.accountsSub'),
       route: '/admin/police/accounts',
       count: adminUsers.length,
+      permission: 'manage_accounts',
     },
     {
       icon: 'megaphone',
@@ -39,14 +52,16 @@ export default function AdminPoliceScreen() {
       subtitle: t('admin.police.announcementsSub'),
       route: '/admin/police/announcements',
       count: announcements.length,
+      permission: 'manage_announcements',
     },
   ];
+  const visibleSections = sections.filter((section) => can(section.permission));
 
   return (
     <Screen>
       <TopBar title={t('admin.police.title')} />
       <View style={styles.grid}>
-        {sections.map((s) => (
+        {visibleSections.map((s) => (
           <Pressable
             key={s.route}
             onPress={() => router.push(s.route as any)}

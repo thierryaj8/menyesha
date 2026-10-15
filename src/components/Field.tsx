@@ -18,6 +18,7 @@ interface FieldProps {
   placeholder?: string;
   error?: string | null;
   hint?: string;
+  prefix?: string;
   secureTextEntry?: boolean;
   keyboardType?: KeyboardTypeOptions;
   autoCapitalize?: TextInputProps['autoCapitalize'];
@@ -36,6 +37,7 @@ export function Field({
   placeholder,
   error,
   hint,
+  prefix,
   secureTextEntry,
   keyboardType,
   autoCapitalize = 'none',
@@ -52,29 +54,59 @@ export function Field({
   return (
     <View style={styles.wrap}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textFaint}
-        secureTextEntry={secureTextEntry}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        autoComplete={autoComplete}
-        textContentType={textContentType}
-        multiline={multiline}
-        maxLength={maxLength}
-        accessibilityLabel={label}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={[
-          styles.input,
-          focused && styles.inputFocused,
-          multiline && styles.multiline,
-          !!error && styles.inputError,
-          style,
-        ]}
-      />
+      {prefix ? (
+        <View
+          style={[
+            styles.input,
+            styles.prefixedInput,
+            focused && styles.inputFocused,
+            !!error && styles.inputError,
+          ]}
+        >
+          <Text style={styles.prefix}>{prefix}</Text>
+          <TextInput
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            placeholderTextColor={colors.textFaint}
+            secureTextEntry={secureTextEntry}
+            keyboardType={keyboardType}
+            autoCapitalize={autoCapitalize}
+            autoComplete={autoComplete}
+            textContentType={textContentType}
+            multiline={multiline}
+            maxLength={maxLength}
+            accessibilityLabel={label}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            style={[styles.prefixedTextInput, style]}
+          />
+        </View>
+      ) : (
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textFaint}
+          secureTextEntry={secureTextEntry}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
+          multiline={multiline}
+          maxLength={maxLength}
+          accessibilityLabel={label}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={[
+            styles.input,
+            focused && styles.inputFocused,
+            multiline && styles.multiline,
+            !!error && styles.inputError,
+            style,
+          ]}
+        />
+      )}
       {error ? (
         <Text style={styles.error}>{error}</Text>
       ) : hint ? (
@@ -95,6 +127,26 @@ const makeStyles = (colors: Colors) =>
       borderColor: colors.borderStrong,
       borderRadius: radius.md,
       paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      ...sans.body,
+      color: colors.text,
+      fontFamily: fonts.sansMedium,
+    },
+    prefixedInput: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 0,
+    },
+    prefix: {
+      ...sans.body,
+      color: colors.textMuted,
+      fontFamily: fonts.sansMedium,
+    },
+    prefixedTextInput: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: 50,
+      paddingLeft: spacing.sm,
       paddingVertical: spacing.sm,
       ...sans.body,
       color: colors.text,

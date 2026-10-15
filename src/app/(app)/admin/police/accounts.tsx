@@ -12,6 +12,7 @@ import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
 import { ROLE_LABELS } from '@/data/adminUsers';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
+import { runCmsMutation } from '@/utils/cms';
 import { useState } from 'react';
 import type { AdminRole, AdminUser } from '@/types';
 
@@ -45,8 +46,16 @@ export default function AdminAccountsScreen() {
     { key: 'username', label: 'Username', value: account?.username ?? '', placeholder: 'admin.username' },
     { key: 'email', label: 'Email', value: account?.email ?? '', placeholder: 'admin@example.com', keyboardType: 'email-address' },
     { key: 'role', label: 'Role', value: account?.role ?? 'content_admin', placeholder: 'content_admin' },
-    { key: 'departmentId', label: 'Department ID', value: account?.departmentId ?? '', placeholder: 'rnp-hq' },
+    { key: 'departmentId', label: 'Department ID', value: account?.departmentId ?? '', placeholder: 'rnp-hq', optional: true },
     { key: 'isActive', label: 'Active', value: account?.isActive ? 'true' : 'false', placeholder: 'true' },
+    {
+      key: 'password',
+      label: account ? 'New password (optional)' : 'Initial password',
+      value: '',
+      placeholder: account ? 'Leave blank to keep current password' : 'At least 8 characters',
+      optional: Boolean(account),
+      secureTextEntry: true,
+    },
   ];
   const submit = (values: Record<string, string>) => {
     const input = {
@@ -57,14 +66,26 @@ export default function AdminAccountsScreen() {
       isActive: values.isActive.trim().toLowerCase() !== 'false',
       permissions: editor.account?.permissions ?? [],
     };
+    const password = values.password.trim();
     if (!input.username || !input.email) return;
-    if (editor.account) updateAdminUser(editor.account.id, input);
-    else createAdminUser(input);
-    setEditor({ open: false });
+    if (!editor.account && !password) return;
+    void runCmsMutation(editor.account ? 'Save account' : 'Create account', async () => {
+      if (editor.account) {
+        await updateAdminUser(editor.account.id, {
+          ...input,
+          ...(password ? { password } : {}),
+        });
+      } else {
+        await createAdminUser({ ...input, password });
+      }
+      setEditor({ open: false });
+    });
   };
   const remove = (account: AdminUser) => Alert.alert('Delete account', `Delete “${account.username}”?`, [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => deleteAdminUser(account.id) },
+    { text: 'Delete', style: 'destructive', onPress: () => {
+      void runCmsMutation('Delete account', () => deleteAdminUser(account.id));
+    } },
   ]);
 
   return (

@@ -12,6 +12,7 @@ import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
+import { runCmsMutation } from '@/utils/cms';
 import { useState } from 'react';
 import type { AnnouncementType, PoliceAnnouncement } from '@/types';
 
@@ -66,13 +67,17 @@ export default function AdminAnnouncementsScreen() {
       isUrgent: editor.announcement?.isUrgent ?? false,
     };
     if (!input.headline || !input.body) return;
-    if (editor.announcement) updateAnnouncement(editor.announcement.id, input);
-    else createAnnouncement(input);
-    setEditor({ open: false });
+    void runCmsMutation(editor.announcement ? 'Save announcement' : 'Create announcement', async () => {
+      if (editor.announcement) await updateAnnouncement(editor.announcement.id, input);
+      else await createAnnouncement(input);
+      setEditor({ open: false });
+    });
   };
   const remove = (announcement: PoliceAnnouncement) => Alert.alert('Delete announcement', `Delete “${announcement.headline}”?`, [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => deleteAnnouncement(announcement.id) },
+    { text: 'Delete', style: 'destructive', onPress: () => {
+      void runCmsMutation('Delete announcement', () => deleteAnnouncement(announcement.id));
+    } },
   ]);
 
   return (

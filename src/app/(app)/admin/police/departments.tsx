@@ -1,7 +1,7 @@
 /**
  * Admin › Police Management › Departments
  * Lists all departments with status indicators.
- * Each row shows edit / verify / deactivate actions (mock).
+ * Each row shows edit / verify / deactivate actions.
  */
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
+import { runCmsMutation } from '@/utils/cms';
 import { useState } from 'react';
 import type { PoliceDepartment } from '@/types';
 
@@ -35,6 +36,8 @@ export default function AdminDepartmentsScreen() {
     { key: 'description', label: 'Description', value: department?.description ?? '', placeholder: 'Department description', multiline: true },
     { key: 'contactPhone', label: 'Phone', value: department?.contactPhone ?? '', placeholder: '+250...' },
     { key: 'contactEmail', label: 'Email', value: department?.contactEmail ?? '', placeholder: 'contact@example.com' },
+    { key: 'username', label: 'Department login username', value: department?.username ?? '', placeholder: 'department-login', optional: true },
+    { key: 'password', label: department ? 'New login password (optional)' : 'Login password (optional)', value: '', placeholder: 'At least 8 characters', optional: true, secureTextEntry: true },
   ];
   const submit = (values: Record<string, string>) => {
     const input = {
@@ -45,6 +48,8 @@ export default function AdminDepartmentsScreen() {
       location: values.location.trim(),
       contactPhone: values.contactPhone.trim() || undefined,
       contactEmail: values.contactEmail.trim() || undefined,
+      username: values.username.trim() || undefined,
+      password: values.password.trim() || undefined,
       website: editor.department?.website,
       socialLinks: editor.department?.socialLinks,
       isVerified: editor.department?.isVerified ?? true,
@@ -55,13 +60,17 @@ export default function AdminDepartmentsScreen() {
       announcementCount: editor.department?.announcementCount ?? 0,
     };
     if (!input.name || !input.shortName || !input.location) return;
-    if (editor.department) updateDepartment(editor.department.id, input);
-    else createDepartment(input);
-    setEditor({ open: false });
+    void runCmsMutation(editor.department ? 'Save department' : 'Create department', async () => {
+      if (editor.department) await updateDepartment(editor.department.id, input);
+      else await createDepartment(input);
+      setEditor({ open: false });
+    });
   };
   const remove = (department: PoliceDepartment) => Alert.alert('Delete department', `Delete “${department.name}”?`, [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => deleteDepartment(department.id) },
+    { text: 'Delete', style: 'destructive', onPress: () => {
+      void runCmsMutation('Delete department', () => deleteDepartment(department.id));
+    } },
   ]);
 
   return (

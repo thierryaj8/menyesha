@@ -9,6 +9,7 @@ import { TopBar } from '@/components/TopBar';
 import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { useT } from '@/i18n';
 import { useApp } from '@/store/AppProvider';
+import { runCmsMutation } from '@/utils/cms';
 import { radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
 import { useState } from 'react';
 import type { DiscoverPost } from '@/types';
@@ -31,7 +32,7 @@ export default function AdminPostsScreen() {
 
   const submit = (values: Record<string, string>) => {
     const input = {
-      departmentId: editor.post?.departmentId ?? 'admin-created',
+      departmentId: editor.post?.departmentId,
       departmentName: values.departmentName.trim() || 'Rwanda National Police',
       title: values.title.trim(),
       body: values.body.trim(),
@@ -42,13 +43,17 @@ export default function AdminPostsScreen() {
       isVerified: editor.post?.isVerified ?? true,
     };
     if (!input.title || !input.body) return;
-    if (editor.post) updateDiscoverPost(editor.post.id, input);
-    else createDiscoverPost(input);
-    setEditor({ open: false });
+    void runCmsMutation(editor.post ? 'Save post' : 'Create post', async () => {
+      if (editor.post) await updateDiscoverPost(editor.post.id, input);
+      else await createDiscoverPost(input);
+      setEditor({ open: false });
+    });
   };
   const remove = (post: DiscoverPost) => Alert.alert('Delete post', `Delete “${post.title}”?`, [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => deleteDiscoverPost(post.id) },
+    { text: 'Delete', style: 'destructive', onPress: () => {
+      void runCmsMutation('Delete post', () => deleteDiscoverPost(post.id));
+    } },
   ]);
 
   return (

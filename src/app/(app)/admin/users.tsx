@@ -6,13 +6,16 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { AdminCrudModal, type CrudField } from '@/components/AdminCrudModal';
 import { Screen } from '@/components/Screen';
 import { TopBar } from '@/components/TopBar';
 import { useT } from '@/i18n';
 import { ROLE_LABELS } from '@/data/adminUsers';
 import { useApp } from '@/store/AppProvider';
-import type { AdminPermission, AdminRole } from '@/types';
+import type { AdminPermission, AdminRole, AdminUser } from '@/types';
 import { HIT_SIZE, radius, sans, shadow, spacing, useTheme, type Colors } from '@/theme';
+import { runCmsMutation } from '@/utils/cms';
 
 const ROLES: AdminRole[] = [
   'super_admin',
@@ -62,11 +65,28 @@ const ROLE_SAMPLES: Record<AdminRole, AdminPermission[]> = {
 
 export default function AdminUsersScreen() {
   const t = useT();
-  const { adminUsers, adminUser, can } = useApp();
+  const { adminUsers, adminUser, can, updateAdminUser } = useApp();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
   const mayEdit = can('manage_roles');
+  const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
+  const roleFields = (admin: AdminUser): CrudField[] => [
+    { key: 'role', label: 'Role', value: admin.role, placeholder: 'content_admin' },
+    { key: 'departmentId', label: 'Department ID', value: admin.departmentId ?? '', placeholder: 'Optional department ID', optional: true },
+    { key: 'isActive', label: 'Active', value: String(admin.isActive), placeholder: 'true' },
+  ];
+  const saveRole = (values: Record<string, string>) => {
+    if (!selectedAdmin) return;
+    void runCmsMutation('Update account role', async () => {
+      await updateAdminUser(selectedAdmin.id, {
+        role: values.role.trim() as AdminRole,
+        departmentId: values.departmentId.trim() || null,
+        isActive: values.isActive.trim().toLowerCase() !== 'false',
+      });
+      setSelectedAdmin(null);
+    });
+  };
 
   return (
     <Screen>
@@ -103,7 +123,7 @@ export default function AdminUsersScreen() {
                 </Text>
               </View>
               {mayEdit && (
-                <Pressable onPress={() => {}} style={styles.actionBtn}>
+                <Pressable onPress={() => setSelectedAdmin(admin)} style={styles.actionBtn}>
                   <Ionicons name="create-outline" size={16} color={colors.brand} />
                 </Pressable>
               )}
@@ -111,6 +131,17 @@ export default function AdminUsersScreen() {
           );
         })}
       </View>
+
+      {selectedAdmin ? (
+        <AdminCrudModal
+          visible
+          title={`Edit ${selectedAdmin.username}`}
+          submitLabel="Save account"
+          initialValues={roleFields(selectedAdmin)}
+          onClose={() => setSelectedAdmin(null)}
+          onSubmit={saveRole}
+        />
+      ) : null}
 
       {/* Permission matrix */}
       <Text style={styles.sectionLabel}>{t('admin.users.matrix')}</Text>

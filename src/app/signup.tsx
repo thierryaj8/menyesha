@@ -81,6 +81,8 @@ export default function SignupScreen() {
         onChangeText={setPhone}
         placeholder={t('auth.phonePlaceholder')}
         error={phoneError}
+        hint={t('auth.phoneCountry')}
+        prefix="+250"
         keyboardType="phone-pad"
         autoComplete="tel"
         textContentType="telephoneNumber"
